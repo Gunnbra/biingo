@@ -5,14 +5,12 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-
-import java.io.File;
-import java.io.IOException;
-
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+
+import java.io.File;
 
 public class Main extends Application {
 
@@ -32,18 +30,42 @@ public class Main extends Application {
     }
 
     public static void insertIcon() throws Exception {
+        // Loads Template Card File
         File file = new File("C:/Users/micro/Desktop/FILES/card.pdf");
-
-        System.out.println(file.exists());
         PDDocument doc = PDDocument.load(file);
 
+        // Loads Page 1
         PDPage page = doc.getPage(0);
 
-        PDImageXObject icon = PDImageXObject.createFromFile("C:/Users/micro/Desktop/FILES/Turtle.png", doc);
-
+        // Loads Icon File
+        PDImageXObject icon = PDImageXObject.createFromFile("C:/Users/micro/Desktop/FILES/snake.png", doc);
         PDPageContentStream contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
 
-        contents.drawImage(icon, 0, 0, 100, 100);
+        // Draws Icon
+        int iAdder = 0;
+        int jAdder = 0;
+
+        for(int i = 0; i < 5; i++) {
+            for (int j = 0; j < 5; j++) {
+                contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
+
+                // Needs to vary movement every 2nd square
+                if (j == 0 || j % 2 == 0) {
+                    jAdder += 105;
+                } else {
+                    jAdder += 106;
+                }
+            }
+            jAdder = 0;
+
+            // Needs to vary movement every 2nd square
+            if (i == 0 || i % 2 == 0) {
+                iAdder += 105;
+            } else {
+                iAdder += 106;
+            }
+        }
+
 
         contents.close();
 
