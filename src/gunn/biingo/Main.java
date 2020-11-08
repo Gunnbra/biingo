@@ -1,32 +1,145 @@
 package gunn.biingo;
 
 import javafx.application.Application;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
+import java.awt.event.ActionEvent;
 import java.io.File;
 import java.util.Random;
 
 public class Main extends Application {
+    File projectLocation = null;
+    File tempLocation = null;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        primaryStage.setTitle("Hello World");
-        primaryStage.setScene(new Scene(root, 300, 275));
-        primaryStage.show();
+        primaryStage.setTitle("BINGO Card Generator");
 
-        outputCard(randomizeCard());
+        windowMainMenu(primaryStage);
 
+        windowPopupNew();
 
         // insertIcon();
     }
+
+    public static void windowMainMenu(Stage primaryStage) {
+        // Create 'Load' and 'New' Buttons
+        Button buttonLoad = new Button("Load");
+        buttonLoad.setMinWidth(100);
+        Button buttonNew = new Button("New");
+        buttonNew.setMinWidth(100);
+
+        // Create BorderPane layout and put buttons in an HBox at the bottom
+        BorderPane borderLayout = new BorderPane();
+
+        HBox menuHBox = new HBox();
+        menuHBox.setAlignment(Pos.BOTTOM_CENTER);
+        menuHBox.getChildren().add(buttonLoad);
+        menuHBox.getChildren().add(buttonNew);
+        menuHBox.setPadding(new Insets(15, 12, 15, 12));
+        menuHBox.setSpacing(10);
+        borderLayout.setBottom(menuHBox);
+
+        // Set scene
+        Scene mainMenuScene = new Scene(borderLayout, 300, 250);
+
+        // Set Scene
+        primaryStage.setScene(mainMenuScene);
+        primaryStage.show();
+    }
+
+    public void windowPopupNew() {
+        // Main Layout
+        VBox layout = new VBox();
+        layout.setPadding(new Insets(10));
+        layout.setSpacing(8);
+
+        // Message
+        Text message = new Text("Where would you like to create the project?");
+        layout.getChildren().add(message);
+
+        // Save Location HBox
+        HBox saveLocationHBox = new HBox();
+        saveLocationHBox.setSpacing(8);
+        saveLocationHBox.setAlignment(Pos.CENTER_LEFT);
+        // Save Location Elements
+        Button buttonLocation = new Button("Save Location");
+        Text textLocation = new Text("No Location Specified");
+        textLocation.setFill(Color.GRAY);
+        saveLocationHBox.getChildren().add(buttonLocation);
+        saveLocationHBox.getChildren().add(textLocation);
+        // Add save location hBox to main Layout
+        layout.getChildren().add(saveLocationHBox);
+
+        // Confirm/Cancel HBox
+        HBox confirmHBox = new HBox();
+        confirmHBox.setSpacing(8);
+        confirmHBox.setAlignment(Pos.CENTER);
+        // Add Buttons
+        Button confirmButton = new Button("Confirm");
+        confirmButton.setMinWidth(100);
+        confirmButton.setDisable(true);
+        Button cancelButton = new Button("Cancel");
+        cancelButton.setMinWidth(100);
+        confirmHBox.getChildren().add(confirmButton);
+        confirmHBox.getChildren().add(cancelButton);
+        // Add confirmHBox to main layout
+        layout.getChildren().add(confirmHBox);
+
+        // Set Scene
+        Scene popupNewScene = new Scene(layout, 400, 100);
+        Stage popupStage = new Stage();
+        popupStage.setTitle("Create new Bingo Card?");
+        popupStage.setScene(popupNewScene);
+        popupStage.show();
+
+        // Button handlers
+        buttonLocation.setOnAction(value -> {
+            DirectoryChooser directoryChooser = new DirectoryChooser();
+            File selectedDirectory = directoryChooser.showDialog(popupStage);
+
+            if(selectedDirectory == null){
+                textLocation.setText("No Location Specified");
+                confirmButton.setDisable(true);
+            } else {
+                textLocation.setText(selectedDirectory.getAbsolutePath());
+                confirmButton.setDisable(false);
+            }
+            this.tempLocation = selectedDirectory;
+        });
+        confirmButton.setOnAction(value -> {
+            this.projectLocation = tempLocation;
+            this.tempLocation = null;
+            popupStage.hide();
+        });
+        cancelButton.setOnAction(value -> {
+            this.tempLocation = null;
+            popupStage.hide();
+        });
+
+
+
+    }
+
 
     public static void main(String[] args) throws Exception {
         launch(args);
