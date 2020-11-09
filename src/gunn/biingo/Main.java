@@ -1,7 +1,6 @@
 package gunn.biingo;
 
 import javafx.application.Application;
-import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -9,7 +8,13 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -21,8 +26,11 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
-import java.awt.event.ActionEvent;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.lang.reflect.Array;
+import java.nio.file.Files;
 import java.util.Random;
 
 public class Main extends Application {
@@ -34,14 +42,13 @@ public class Main extends Application {
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
         primaryStage.setTitle("BINGO Card Generator");
 
-        windowMainMenu(primaryStage);
+        //  windowMainMenu(primaryStage);
 
-        windowPopupNew();
-
+        windowCardCreation(primaryStage);
         // insertIcon();
     }
 
-    public static void windowMainMenu(Stage primaryStage) {
+    public void windowMainMenu(Stage primaryStage) {
         // Create 'Load' and 'New' Buttons
         Button buttonLoad = new Button("Load");
         buttonLoad.setMinWidth(100);
@@ -65,9 +72,15 @@ public class Main extends Application {
         // Set Scene
         primaryStage.setScene(mainMenuScene);
         primaryStage.show();
+
+        buttonLoad.setOnAction(value -> {
+        });
+        buttonNew.setOnAction(value -> {
+            windowPopupNew(primaryStage);
+        });
     }
 
-    public void windowPopupNew() {
+    public void windowPopupNew(Stage primaryStage) {
         // Main Layout
         VBox layout = new VBox();
         layout.setPadding(new Insets(10));
@@ -117,7 +130,7 @@ public class Main extends Application {
             DirectoryChooser directoryChooser = new DirectoryChooser();
             File selectedDirectory = directoryChooser.showDialog(popupStage);
 
-            if(selectedDirectory == null){
+            if (selectedDirectory == null) {
                 textLocation.setText("No Location Specified");
                 confirmButton.setDisable(true);
             } else {
@@ -130,16 +143,109 @@ public class Main extends Application {
             this.projectLocation = tempLocation;
             this.tempLocation = null;
             popupStage.hide();
+            windowCardCreation(primaryStage);
         });
         cancelButton.setOnAction(value -> {
             this.tempLocation = null;
             popupStage.hide();
         });
-
-
-
     }
 
+    public void windowCardCreation(Stage primaryStage) {
+        File[] tempIcons = new File[75]; //Temp icon locations
+        final int[] counter = {0};
+
+        // Scene Creations
+        BorderPane borderLayout = new BorderPane();
+
+        // Drop Box, TOP
+        VBox dropVBox = new VBox();
+        dropVBox.setStyle("-fx-border-style: dashed inside; -fx-border-width: 2; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: gray;");
+        dropVBox.setMinHeight(100);
+        dropVBox.setAlignment(Pos.CENTER);
+        dropVBox.setSpacing(10);
+        // Add Files Button
+        Button buttonGetFiles = new Button("Choose Files");
+        buttonGetFiles.setMinWidth(200);
+        buttonGetFiles.setMinHeight(30);
+        dropVBox.getChildren().add(buttonGetFiles);
+        // Add Drop Text
+        Text dropText = new Text("Or drop PNGs here");
+        dropVBox.getChildren().add(dropText);
+        // Set Vbox to layout
+        borderLayout.setTop(dropVBox);
+
+        // Preview FlowPane
+        FlowPane previewFlowPane = new FlowPane();
+        for (int i = 0; i < tempIcons.length; i++) {
+          //  if(tempIcons[i] != null) {
+                Image image = new Image(new File("C:/Users/micro/Desktop/TestEnvironment/icons/temp0.png").getAbsolutePath() /*tempIcons[i].getAbsolutePath()*/);
+                ImageView imageView = new ImageView(image);
+                previewFlowPane.getChildren().add(imageView);
+          //  }
+        }
+        borderLayout.setCenter(previewFlowPane);
+
+
+        // Setting Scene
+        Scene bingoScene = new Scene(borderLayout, 800, 800);
+        primaryStage.setScene(bingoScene);
+        primaryStage.show();
+
+        // DragOver Event
+        dropVBox.setOnDragOver(new EventHandler<DragEvent>() {
+            @Override
+            public void handle(DragEvent event) {
+                Dragboard db = event.getDragboard();
+                if (db.hasFiles()) {
+                    event.acceptTransferModes(TransferMode.COPY);
+                } else {
+                    event.consume();
+                }
+            }
+        });
+
+
+        // OnDragOver Event
+        dropVBox.setOnDragDropped(new EventHandler<DragEvent>() {
+            @Override
+            public void handle(DragEvent event) {
+                Dragboard db = event.getDragboard();
+                boolean success = false;
+                if (db.hasFiles()) {
+                    success = true;
+                    File[] files = db.getFiles().toArray(new File[0]);
+                    for (int i = 0; i < files.length; i++) { // Checks if all files end with .png, if one doesn't, failure
+                        String fileExt = files[i].getName();
+                        if (!fileExt.contains(".png")) {
+                            success = false;
+                            break;
+                        }
+                    }
+
+                    if (success) {
+                        //TODO move to creation of new project, or load
+                        File tempProject = new File("C:/Users/micro/Desktop/Test Environment");
+                        File iconDir = new File(tempProject.getAbsoluteFile() + "/icons");
+                        iconDir.mkdirs();
+
+                        for (int i = 0; i < files.length; i++) {
+                            try {
+                                File tempFile = new File(iconDir + "/temp" + counter[0] + ".png");
+                                Files.copy(files[i].toPath(), tempFile.toPath());
+                                counter[0]++;
+                                tempIcons[counter[0]] = tempFile;
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+                event.setDropCompleted(success);
+                event.consume();
+            }
+        });
+    }
 
     public static void main(String[] args) throws Exception {
         launch(args);
