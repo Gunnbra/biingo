@@ -1,6 +1,8 @@
 package gunn.biingo;
 
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -8,6 +10,9 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
@@ -21,21 +26,25 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.util.Random;
 
 public class Main extends Application {
     File projectLocation = null;
     File tempLocation = null;
+    FlowPane previewFlowPane = null;
+
+    public static void main(String[] args) throws Exception {
+        launch(args);
+    }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -48,6 +57,9 @@ public class Main extends Application {
         // insertIcon();
     }
 
+    /**
+     * Scene: Main Menu
+     */
     public void windowMainMenu(Stage primaryStage) {
         // Create 'Load' and 'New' Buttons
         Button buttonLoad = new Button("Load");
@@ -80,6 +92,9 @@ public class Main extends Application {
         });
     }
 
+    /**
+     * Scene: New Project
+     */
     public void windowPopupNew(Stage primaryStage) {
         // Main Layout
         VBox layout = new VBox();
@@ -142,6 +157,12 @@ public class Main extends Application {
         confirmButton.setOnAction(value -> {
             this.projectLocation = tempLocation;
             this.tempLocation = null;
+
+            // Created file structure
+            File tempProject = new File("C:/Users/micro/Desktop/TestEnvironment");
+            File iconDir = new File(tempProject.getAbsoluteFile() + "/icons");
+            iconDir.mkdirs();
+
             popupStage.hide();
             windowCardCreation(primaryStage);
         });
@@ -151,44 +172,48 @@ public class Main extends Application {
         });
     }
 
+    /**
+     * Scene: Card editor
+     */
     public void windowCardCreation(Stage primaryStage) {
-        File[] tempIcons = new File[75]; //Temp icon locations
-        final int[] counter = {0};
-
         // Scene Creations
-        BorderPane borderLayout = new BorderPane();
+        BorderPane mainLayout = new BorderPane();
 
-        // Drop Box, TOP
+        // Drop Files Box
         VBox dropVBox = new VBox();
         dropVBox.setStyle("-fx-border-style: dashed inside; -fx-border-width: 2; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: gray;");
         dropVBox.setMinHeight(100);
         dropVBox.setAlignment(Pos.CENTER);
         dropVBox.setSpacing(10);
-        // Add Files Button
+        // AddFiles Button
         Button buttonGetFiles = new Button("Choose Files");
         buttonGetFiles.setMinWidth(200);
         buttonGetFiles.setMinHeight(30);
         dropVBox.getChildren().add(buttonGetFiles);
-        // Add Drop Text
+        // AddFiles Text
         Text dropText = new Text("Or drop PNGs here");
         dropVBox.getChildren().add(dropText);
         // Set Vbox to layout
-        borderLayout.setTop(dropVBox);
+        mainLayout.setTop(dropVBox);
 
-        // Preview FlowPane
+        // Scroll pane to hold icon previews
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setFitToHeight(true);
+        scrollPane.setFitToWidth(true);
+        // Flow pane, goes inside Scroll pane
         FlowPane previewFlowPane = new FlowPane();
-        for (int i = 0; i < tempIcons.length; i++) {
-          //  if(tempIcons[i] != null) {
-                Image image = new Image(new File("C:/Users/micro/Desktop/TestEnvironment/icons/temp0.png").getAbsolutePath() /*tempIcons[i].getAbsolutePath()*/);
-                ImageView imageView = new ImageView(image);
-                previewFlowPane.getChildren().add(imageView);
-          //  }
-        }
-        borderLayout.setCenter(previewFlowPane);
+        previewFlowPane.setPadding(new Insets(40, 20, 20, 40));
+        previewFlowPane.setVgap(25);
+        previewFlowPane.setHgap(25);
+        // Set to layout
+        scrollPane.setContent(previewFlowPane);
+        mainLayout.setCenter(scrollPane);
 
+        this.previewFlowPane = previewFlowPane;
+        rerenderPreviews();
 
         // Setting Scene
-        Scene bingoScene = new Scene(borderLayout, 800, 800);
+        Scene bingoScene = new Scene(mainLayout, 600, 800);
         primaryStage.setScene(bingoScene);
         primaryStage.show();
 
@@ -205,50 +230,122 @@ public class Main extends Application {
             }
         });
 
-
         // OnDragOver Event
-        dropVBox.setOnDragDropped(new EventHandler<DragEvent>() {
-            @Override
-            public void handle(DragEvent event) {
-                Dragboard db = event.getDragboard();
-                boolean success = false;
-                if (db.hasFiles()) {
-                    success = true;
-                    File[] files = db.getFiles().toArray(new File[0]);
-                    for (int i = 0; i < files.length; i++) { // Checks if all files end with .png, if one doesn't, failure
-                        String fileExt = files[i].getName();
-                        if (!fileExt.contains(".png")) {
-                            success = false;
-                            break;
-                        }
-                    }
-
-                    if (success) {
-                        //TODO move to creation of new project, or load
-                        File tempProject = new File("C:/Users/micro/Desktop/Test Environment");
-                        File iconDir = new File(tempProject.getAbsoluteFile() + "/icons");
-                        iconDir.mkdirs();
-
-                        for (int i = 0; i < files.length; i++) {
-                            try {
-                                File tempFile = new File(iconDir + "/temp" + counter[0] + ".png");
-                                Files.copy(files[i].toPath(), tempFile.toPath());
-                                counter[0]++;
-                                tempIcons[counter[0]] = tempFile;
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                }
-                event.setDropCompleted(success);
-                event.consume();
-            }
-        });
+        dropVBox.setOnDragDropped(onDropFileHandler);
     }
 
-    public static void main(String[] args) throws Exception {
-        launch(args);
+    /**
+     * Event Listener: On File Drop
+     */
+    EventHandler<DragEvent> onDropFileHandler = new EventHandler<DragEvent>() {
+        @Override
+        public void handle(DragEvent event) {
+            Dragboard db = event.getDragboard();
+            boolean success = false;
+            if (db.hasFiles()) {
+                success = true;
+                File[] files = db.getFiles().toArray(new File[0]);
+                for (int i = 0; i < files.length; i++) { // Checks if all files end with .png, if one doesn't, failure
+                    String fileExt = files[i].getName();
+                    if (!fileExt.contains(".png")) {
+                        success = false;
+                        break;
+                    }
+                }
+                if (success) {
+                    for (int i = 0; i < files.length; i++) {
+                        try {
+                            String name = String.format("%s.%s", RandomStringUtils.randomAlphanumeric(8), "png");
+                            File tempFile = new File("C:/Users/micro/Desktop/TestEnvironment/icons/temp" + name);
+                            Files.copy(files[i].toPath(), tempFile.toPath());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    rerenderPreviews();
+                }
+            }
+            event.setDropCompleted(success);
+            event.consume();
+        }
+    };
+
+    /**
+     * Renders icons in Card editor
+     */
+    public void rerenderPreviews() {
+        File iconDir = new File("C:/Users/micro/Desktop/TestEnvironment/icons");
+        String[] fileList = iconDir.list();
+
+        this.previewFlowPane.getChildren().clear(); // Removes all so it can be re rendered
+        for (int i = 0; i < fileList.length; i++) {
+           final File currentFile = new File(iconDir.getAbsolutePath() + "/" + fileList[i]);
+
+            HBox hBox = new HBox();
+            hBox.setStyle("-fx-border-style: solid inside; -fx-border-width: 1; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: black;");
+            hBox.setPadding(new Insets(5, 5, 5, 5));
+            hBox.setSpacing(5);
+            hBox.setAlignment(Pos.CENTER);
+
+            Image image = new Image("file:" + iconDir.getAbsolutePath() + "/" + fileList[i]);
+            ImageView imageView = new ImageView(image);
+            imageView.setFitHeight(100);
+            imageView.setFitWidth(100);
+            hBox.getChildren().add(imageView);
+
+            ComboBox comboBox = new ComboBox(options());
+
+            if (fileList[i].length() == 6) { // That being '00.png' = 6
+                try {
+                    comboBox.getSelectionModel().select(fileList[i].substring(0, 2));
+                }
+                catch(Exception e){
+                    System.out.println("2 digit long file name IS NOT A VIABLE NUMBER (1-75)");
+                    System.out.println(fileList[i].substring(0, 2));
+                }
+            }
+
+
+
+            hBox.getChildren().add(comboBox);
+
+            this.previewFlowPane.getChildren().add(hBox);
+
+
+            comboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+                if (newValue.toString().length() == 1){ // Keep length to 2 digits
+                    newValue = 0 + newValue.toString();
+                }
+
+
+                currentFile.renameTo(new File(iconDir.getAbsolutePath() + "/" + newValue + ".png"));
+                rerenderPreviews();
+            });
+        }
+    }
+
+    public ObservableList<String> options(){
+        ObservableList<String> options =  FXCollections.observableArrayList(
+                " "
+        );
+
+
+        for(int i = 0; i < 76; i++){
+            String currentNum = Integer.toString(i);
+
+            if(i < 10){
+                currentNum = "0" + Integer.toString(i);
+            }
+
+            File currentFile = new File("C:/Users/micro/Desktop/TestEnvironment/icons" + "/" + currentNum + ".png");
+
+            if(!currentFile.exists()){
+                options.add(currentNum);
+            }
+        }
+
+        return options;
     }
 
     public static void insertIcon() throws Exception {
