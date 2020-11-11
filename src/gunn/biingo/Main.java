@@ -10,7 +10,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
@@ -25,19 +27,21 @@ import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.util.converter.IntegerStringConverter;
-import javafx.util.converter.NumberStringConverter;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.multipdf.LayerUtility;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.PDPageTree;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
 
+import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.text.DecimalFormat;
-import java.util.List;
 import java.util.Random;
 
 public class Main extends Application {
@@ -279,7 +283,7 @@ public class Main extends Application {
             @Override
             public void handle(ActionEvent actionEvent) {
                 try {
-                    generatePDF(10);
+                    generatePDF(Integer.parseInt(comboNumber.getValue().toString().substring(1)));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -464,28 +468,37 @@ public class Main extends Application {
     public static void generatePDF(int numOfCards) throws Exception {
         // Loads Template Card File
         File file = new File("C:/Users/micro/Desktop/FILES/card.pdf");
-        PDDocument doc = PDDocument.load(file);
+        PDDocument templateDoc = PDDocument.load(file);
+        PDPage templatePage = templateDoc.getDocumentCatalog().getPages().get(0);
 
+        // Create new PDF
+        PDDocument doc = new PDDocument();
 
-        for(int n = 0; n < numOfCards; n++){
+        // Create new page based on # of cards specified
+        for (int n = 0; n < numOfCards; n++) {
+            // Create array of card #'s
             int[][] cardNumbers = randomizeCard();
 
-            // Loads Page
-            PDPage page = doc.getPage(n);
-
-            // Loads Icon File
-            File iconDir = new File("C:/Users/micro/Desktop/FILES/");
+            // Create new page based on template
+            PDPage page = templateDoc.importPage(templatePage);
             PDPageContentStream contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
 
             // Draws Icon
+            File iconDir = new File("C:/Users/micro/Desktop/FILES/");
             int iAdder = 0;
             int jAdder = 0;
 
             // Iterates through each square, places each icon
             for (int i = 0; i < 5; i++) {
                 for (int j = 0; j < 5; j++) {
-                    PDImageXObject icon = PDImageXObject.createFromFile(iconDir + Integer.toString(cardNumbers[i][j]) + ".png", doc);
-                    contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
+                 //   PDImageXObject icon = PDImageXObject.createFromFile(iconDir + Integer.toString(cardNumbers[i][j]) + ".png", doc);
+                 //   contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
+
+                    contents.beginText();
+                    contents.setFont(PDType1Font.TIMES_BOLD, 50);
+                    contents.newLineAtOffset(52 + iAdder, 79 + jAdder);
+                    contents.showText(Integer.toString(cardNumbers[i][j]));
+                    contents.endText();
 
                     // Needs to vary movement every 2nd square
                     if (j % 2 == 0) {
@@ -503,11 +516,10 @@ public class Main extends Application {
                     iAdder += 106;
                 }
             }
-
             contents.close();
+            doc.addPage(page);
         }
         doc.save("C:/Users/micro/Desktop/FILES/testCard.pdf");
-
         doc.close();
     }
 }
