@@ -274,6 +274,17 @@ public class Main extends Application {
                 rerenderPreviews();
             }
         });
+
+        buttonGen.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                try {
+                    generatePDF(10);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
