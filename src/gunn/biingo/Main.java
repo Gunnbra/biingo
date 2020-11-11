@@ -330,18 +330,17 @@ public class Main extends Application {
                 }
             }
 
-
-
             hBox.getChildren().add(comboBox);
 
             this.previewFlowPane.getChildren().add(hBox);
 
 
             comboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-                if (newValue.toString().length() == 1){ // Keep length to 2 digits
+                if (newValue.toString() == " "){
+                    newValue = RandomStringUtils.randomAlphanumeric(8);
+                } else if (newValue.toString().length() == 1){ // Keep length to 2 digits
                     newValue = 0 + newValue.toString();
                 }
-
 
                 currentFile.renameTo(new File(iconDir.getAbsolutePath() + "/" + newValue + ".png"));
                 rerenderPreviews();
@@ -354,11 +353,12 @@ public class Main extends Application {
                 " "
         );
 
-
         for(int i = 0; i < 76; i++){
             String currentNum = Integer.toString(i);
 
-            if(i < 10){
+            if (i == 0){
+                currentNum = "Unlink";
+            } else if (i < 10) {
                 currentNum = "0" + Integer.toString(i);
             }
 
