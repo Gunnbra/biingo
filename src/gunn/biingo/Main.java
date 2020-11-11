@@ -3,6 +3,7 @@ package gunn.biingo;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -25,6 +26,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -35,6 +37,7 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Random;
 
 public class Main extends Application {
@@ -213,7 +216,7 @@ public class Main extends Application {
         rerenderPreviews();
 
         // Setting Scene
-        Scene bingoScene = new Scene(mainLayout, 600, 800);
+        Scene bingoScene = new Scene(mainLayout, 600, 400);
         primaryStage.setScene(bingoScene);
         primaryStage.show();
 
@@ -232,6 +235,27 @@ public class Main extends Application {
 
         // OnDragOver Event
         dropVBox.setOnDragDropped(onDropFileHandler);
+
+        buttonGetFiles.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
+                Object[] files = fileChooser.showOpenMultipleDialog(primaryStage).toArray();
+
+                for (int i = 0; i < files.length; i++) {
+                    try {
+                        String name = String.format("%s.%s", RandomStringUtils.randomAlphanumeric(8), "png");
+                        File tempFile = new File("C:/Users/micro/Desktop/TestEnvironment/icons/temp" + name);
+                        Files.copy(new File(files[i].toString()).toPath(), tempFile.toPath());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                rerenderPreviews();
+            }
+        });
     }
 
     /**
