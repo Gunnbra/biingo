@@ -10,10 +10,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
@@ -28,6 +25,8 @@ import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.converter.IntegerStringConverter;
+import javafx.util.converter.NumberStringConverter;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -37,6 +36,7 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Random;
 
@@ -212,11 +212,29 @@ public class Main extends Application {
         scrollPane.setContent(previewFlowPane);
         mainLayout.setCenter(scrollPane);
 
+        // Bottom Generate Panel
+        HBox generatePane = new HBox();
+        generatePane.setAlignment(Pos.CENTER);
+        generatePane.setSpacing(10);
+        generatePane.setPadding(new Insets(10, 10, 10, 10));
+        Button buttonGen = new Button("Generate");
+        // Generate and create numbers for # of cards to generate
+        ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
+        for(int i = 1; i < 100; i++){
+            genNumbers.add("x" + Integer.toString(i));
+        }
+        ComboBox comboNumber = new ComboBox(genNumbers);
+        comboNumber.getSelectionModel().select("x1");
+
+        generatePane.getChildren().add(comboNumber);
+        generatePane.getChildren().add(buttonGen);
+        mainLayout.setBottom(generatePane);
+
         this.previewFlowPane = previewFlowPane;
         rerenderPreviews();
 
         // Setting Scene
-        Scene bingoScene = new Scene(mainLayout, 600, 400);
+        Scene bingoScene = new Scene(mainLayout, 500, 500);
         primaryStage.setScene(bingoScene);
         primaryStage.show();
 
@@ -348,6 +366,9 @@ public class Main extends Application {
         }
     }
 
+    /**
+     * Generates available numbers
+     */
     public ObservableList<String> options(){
         ObservableList<String> options =  FXCollections.observableArrayList(
                 " "
@@ -370,51 +391,6 @@ public class Main extends Application {
         }
 
         return options;
-    }
-
-    public static void insertIcon() throws Exception {
-        // Loads Template Card File
-        File file = new File("C:/Users/micro/Desktop/FILES/card.pdf");
-        PDDocument doc = PDDocument.load(file);
-
-        // Loads Page 1
-        PDPage page = doc.getPage(0);
-
-        // Loads Icon File
-        PDImageXObject icon = PDImageXObject.createFromFile("C:/Users/micro/Desktop/FILES/snake.png", doc);
-        PDPageContentStream contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
-
-        // Draws Icon
-        int iAdder = 0;
-        int jAdder = 0;
-
-        // Iterates through each square, places each icon
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 5; j++) {
-                contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
-
-                // Needs to vary movement every 2nd square
-                if (j % 2 == 0) {
-                    jAdder += 105;
-                } else {
-                    jAdder += 106;
-                }
-            }
-            jAdder = 0;
-
-            // Needs to vary movement every 2nd square
-            if (i % 2 == 0) {
-                iAdder += 105;
-            } else {
-                iAdder += 106;
-            }
-        }
-
-        contents.close();
-
-        doc.save("C:/Users/micro/Desktop/FILES/testCard.pdf");
-
-        doc.close();
     }
 
     /**
@@ -472,5 +448,55 @@ public class Main extends Application {
         }
 
         return result;
+    }
+
+    public static void generatePDF(int numOfCards) throws Exception {
+        // Loads Template Card File
+        File file = new File("C:/Users/micro/Desktop/FILES/card.pdf");
+        PDDocument doc = PDDocument.load(file);
+
+
+        for(int n = 0; n < numOfCards; n++){
+            int[][] cardNumbers = randomizeCard();
+
+            // Loads Page
+            PDPage page = doc.getPage(n);
+
+            // Loads Icon File
+            File iconDir = new File("C:/Users/micro/Desktop/FILES/");
+            PDPageContentStream contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
+
+            // Draws Icon
+            int iAdder = 0;
+            int jAdder = 0;
+
+            // Iterates through each square, places each icon
+            for (int i = 0; i < 5; i++) {
+                for (int j = 0; j < 5; j++) {
+                    PDImageXObject icon = PDImageXObject.createFromFile(iconDir + Integer.toString(cardNumbers[i][j]) + ".png", doc);
+                    contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
+
+                    // Needs to vary movement every 2nd square
+                    if (j % 2 == 0) {
+                        jAdder += 105;
+                    } else {
+                        jAdder += 106;
+                    }
+                }
+                jAdder = 0;
+
+                // Needs to vary movement every 2nd square
+                if (i % 2 == 0) {
+                    iAdder += 105;
+                } else {
+                    iAdder += 106;
+                }
+            }
+
+            contents.close();
+        }
+        doc.save("C:/Users/micro/Desktop/FILES/testCard.pdf");
+
+        doc.close();
     }
 }
