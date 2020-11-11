@@ -37,6 +37,7 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
 import java.awt.geom.AffineTransform;
 import java.io.File;
@@ -484,21 +485,41 @@ public class Main extends Application {
             PDPageContentStream contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
 
             // Draws Icon
-            File iconDir = new File("C:/Users/micro/Desktop/FILES/");
+            File iconDir = new File("C:/Users/micro/Desktop/TestEnvironment/icons/");
             int iAdder = 0;
             int jAdder = 0;
 
             // Iterates through each square, places each icon
             for (int i = 0; i < 5; i++) {
                 for (int j = 0; j < 5; j++) {
-                 //   PDImageXObject icon = PDImageXObject.createFromFile(iconDir + Integer.toString(cardNumbers[i][j]) + ".png", doc);
-                 //   contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
+                    String currentNum = Integer.toString(cardNumbers[i][j]);
+                    if(cardNumbers[i][j] < 10){
+                        currentNum = "0" + cardNumbers[i][j];
+                    }
 
-                    contents.beginText();
-                    contents.setFont(PDType1Font.TIMES_BOLD, 50);
-                    contents.newLineAtOffset(52 + iAdder, 79 + jAdder);
-                    contents.showText(Integer.toString(cardNumbers[i][j]));
-                    contents.endText();
+                    String path = iconDir + "/" + currentNum + ".png";
+
+
+
+                    System.out.println(path);
+                    System.out.println(new File(path).exists());
+
+
+
+
+
+                    // If icon exists use, otherwise use a Number
+                    // TODO WARNING if failed even once
+                    if(new File(path).exists()) {
+                        PDImageXObject icon = PDImageXObject.createFromFile(path, doc);
+                        contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
+                    } else {
+                        contents.beginText();
+                        contents.setFont(PDType1Font.TIMES_BOLD, 50);
+                        contents.newLineAtOffset(52 + iAdder, 79 + jAdder);
+                        contents.showText(currentNum);
+                        contents.endText();
+                    }
 
                     // Needs to vary movement every 2nd square
                     if (j % 2 == 0) {
