@@ -22,32 +22,28 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.pdfbox.cos.COSDictionary;
-import org.apache.pdfbox.cos.COSName;
-import org.apache.pdfbox.multipdf.LayerUtility;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
-import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Random;
 
 public class Main extends Application {
-    File projectLocation = null;
-    File tempLocation = null;
+    Stage primaryStage = null;
+
+    File projectDirectory = null;
+    File templateCard = null;
+
     FlowPane previewFlowPane = null;
 
     public static void main(String[] args) throws Exception {
@@ -58,17 +54,15 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
         primaryStage.setTitle("BINGO Card Generator");
+        this.primaryStage = primaryStage;
 
-        //  windowMainMenu(primaryStage);
-
-        windowCardCreation(primaryStage);
-        // insertIcon();
+        windowMainMenu();
     }
 
     /**
      * Scene: Main Menu
      */
-    public void windowMainMenu(Stage primaryStage) {
+    public void windowMainMenu() {
         // Create 'Load' and 'New' Buttons
         Button buttonLoad = new Button("Load");
         buttonLoad.setMinWidth(100);
@@ -94,96 +88,86 @@ public class Main extends Application {
         primaryStage.show();
 
         buttonLoad.setOnAction(value -> {
+            DirectoryChooser dirChooser = new DirectoryChooser();
+
+            //Show save file dialog
+            File file = dirChooser.showDialog(primaryStage);
+
+            if (file != null) {
+                loadProjectDirectory(file);
+            }
         });
         buttonNew.setOnAction(value -> {
-            windowPopupNew(primaryStage);
+            FileChooser fileChooser = new FileChooser();
+
+            //Set extension filter for text files
+            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("BINGO files (*.bingo)", "*.bingo");
+            fileChooser.getExtensionFilters().add(extFilter);
+
+            //Show save file dialog
+            File file = fileChooser.showSaveDialog(primaryStage);
+
+            if (file != null) {
+                createProjectDirectory(file);
+            }
         });
     }
 
     /**
-     * Scene: New Project
+     * Creates file structure for project
      */
-    public void windowPopupNew(Stage primaryStage) {
-        // Main Layout
-        VBox layout = new VBox();
-        layout.setPadding(new Insets(10));
-        layout.setSpacing(8);
+    public void createProjectDirectory(File file){
+        // Created Project Data Directory
+       String parentPath = file.getParent();
+       String nameProject = file.getName().substring(0, file.getName().length() - 6);
 
-        // Message
-        Text message = new Text("Where would you like to create the project?");
-        layout.getChildren().add(message);
+       // Base Data Directory
+       File projectDir = new File(parentPath + "/" + nameProject + ".bingo");
+       projectDir.mkdir();
 
-        // Save Location HBox
-        HBox saveLocationHBox = new HBox();
-        saveLocationHBox.setSpacing(8);
-        saveLocationHBox.setAlignment(Pos.CENTER_LEFT);
-        // Save Location Elements
-        Button buttonLocation = new Button("Save Location");
-        Text textLocation = new Text("No Location Specified");
-        textLocation.setFill(Color.GRAY);
-        saveLocationHBox.getChildren().add(buttonLocation);
-        saveLocationHBox.getChildren().add(textLocation);
-        // Add save location hBox to main Layout
-        layout.getChildren().add(saveLocationHBox);
+       // Icon Directory
+       File iconDir = new File(projectDir + "/" + "icons");
+       iconDir.mkdir();
 
-        // Confirm/Cancel HBox
-        HBox confirmHBox = new HBox();
-        confirmHBox.setSpacing(8);
-        confirmHBox.setAlignment(Pos.CENTER);
-        // Add Buttons
-        Button confirmButton = new Button("Confirm");
-        confirmButton.setMinWidth(100);
-        confirmButton.setDisable(true);
-        Button cancelButton = new Button("Cancel");
-        cancelButton.setMinWidth(100);
-        confirmHBox.getChildren().add(confirmButton);
-        confirmHBox.getChildren().add(cancelButton);
-        // Add confirmHBox to main layout
-        layout.getChildren().add(confirmHBox);
+       // Project File
+        file.mkdir();
 
-        // Set Scene
-        Scene popupNewScene = new Scene(layout, 400, 100);
-        Stage popupStage = new Stage();
-        popupStage.setTitle("Create new Bingo Card?");
-        popupStage.setScene(popupNewScene);
-        popupStage.show();
+        if(projectDir.exists()){
+            projectDirectory = projectDir;
+            windowCardCreation(false);
+        } else {
+           // TODO ERROR
+        }
+    }
 
-        // Button handlers
-        buttonLocation.setOnAction(value -> {
-            DirectoryChooser directoryChooser = new DirectoryChooser();
-            File selectedDirectory = directoryChooser.showDialog(popupStage);
+    /**
+     * Load file structure for project
+     */
+    public void loadProjectDirectory(File file){
+        boolean success = true;
 
-            if (selectedDirectory == null) {
-                textLocation.setText("No Location Specified");
-                confirmButton.setDisable(true);
-            } else {
-                textLocation.setText(selectedDirectory.getAbsolutePath());
-                confirmButton.setDisable(false);
-            }
-            this.tempLocation = selectedDirectory;
-        });
-        confirmButton.setOnAction(value -> {
-            this.projectLocation = tempLocation;
-            this.tempLocation = null;
+        if(file.exists()) {
+            projectDirectory = file;
+        } else {
+            success = false;
+        }
 
-            // Created file structure
-            File tempProject = new File("C:/Users/micro/Desktop/TestEnvironment");
-            File iconDir = new File(tempProject.getAbsoluteFile() + "/icons");
-            iconDir.mkdirs();
+        File tempCard = new File(file + "/" + "template.pdf");
+        if(tempCard.exists()){
+            templateCard = tempCard;
+        }
 
-            popupStage.hide();
-            windowCardCreation(primaryStage);
-        });
-        cancelButton.setOnAction(value -> {
-            this.tempLocation = null;
-            popupStage.hide();
-        });
+        if(success){
+            windowCardCreation(true);
+        }else{
+            // TODO ERROR
+        }
     }
 
     /**
      * Scene: Card editor
      */
-    public void windowCardCreation(Stage primaryStage) {
+    public void windowCardCreation(boolean isThereATemplate) {
         // Scene Creations
         BorderPane mainLayout = new BorderPane();
 
@@ -217,12 +201,24 @@ public class Main extends Application {
         scrollPane.setContent(previewFlowPane);
         mainLayout.setCenter(scrollPane);
 
-        // Bottom Generate Panel
+        // Bottom panel
+        VBox bottomPane = new VBox();
+        bottomPane.setAlignment(Pos.CENTER);
+        // Template Panel
+        HBox templatePane = new HBox();
+        templatePane.setAlignment(Pos.CENTER);
+        templatePane.setSpacing(10);
+        templatePane.setPadding(new Insets(10, 10, 10, 10));
+        Button buttonSetTemp = new Button("No Template Specified");
+        templatePane.getChildren().add(buttonSetTemp);
+        bottomPane.getChildren().add(templatePane);
+        // Generate Panel
         HBox generatePane = new HBox();
         generatePane.setAlignment(Pos.CENTER);
         generatePane.setSpacing(10);
         generatePane.setPadding(new Insets(10, 10, 10, 10));
         Button buttonGen = new Button("Generate");
+        buttonGen.setDisable(true);
         // Generate and create numbers for # of cards to generate
         ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
         for(int i = 1; i < 100; i++){
@@ -230,11 +226,18 @@ public class Main extends Application {
         }
         ComboBox comboNumber = new ComboBox(genNumbers);
         comboNumber.getSelectionModel().select("x1");
-
         generatePane.getChildren().add(comboNumber);
         generatePane.getChildren().add(buttonGen);
-        mainLayout.setBottom(generatePane);
+        bottomPane.getChildren().add(generatePane);
+        mainLayout.setBottom(bottomPane);
 
+        // If there is a template on load
+        if(isThereATemplate) {
+            buttonSetTemp.setText("Replace Template Card");
+            buttonGen.setDisable(false);
+        }
+
+        // Render Preview Icons
         this.previewFlowPane = previewFlowPane;
         rerenderPreviews();
 
@@ -243,7 +246,9 @@ public class Main extends Application {
         primaryStage.setScene(bingoScene);
         primaryStage.show();
 
-        // DragOver Event
+        // --------------- LISTENERS -----------------------------------
+
+        // DropBox DragOver Event
         dropVBox.setOnDragOver(new EventHandler<DragEvent>() {
             @Override
             public void handle(DragEvent event) {
@@ -256,9 +261,10 @@ public class Main extends Application {
             }
         });
 
-        // OnDragOver Event
+        // DropBox OnDragOver Event
         dropVBox.setOnDragDropped(onDropFileHandler);
 
+        // GetFiles Button OnAction
         buttonGetFiles.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -269,7 +275,7 @@ public class Main extends Application {
                 for (int i = 0; i < files.length; i++) {
                     try {
                         String name = String.format("%s.%s", RandomStringUtils.randomAlphanumeric(8), "png");
-                        File tempFile = new File("C:/Users/micro/Desktop/TestEnvironment/icons/temp" + name);
+                        File tempFile = new File(projectDirectory + "/icons/temp" + name);
                         Files.copy(new File(files[i].toString()).toPath(), tempFile.toPath());
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -280,6 +286,7 @@ public class Main extends Application {
             }
         });
 
+        // Generate Button OnAction
         buttonGen.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -287,6 +294,45 @@ public class Main extends Application {
                     generatePDF(Integer.parseInt(comboNumber.getValue().toString().substring(1)));
                 } catch (Exception e) {
                     e.printStackTrace();
+                }
+            }
+        });
+
+        // GetTemplate Button OnAction
+        buttonSetTemp.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF files (*.pdf)", "*.pdf"));
+                File file = fileChooser.showOpenDialog(primaryStage);
+
+                if(file != null){
+                    templateCard = file;
+                    buttonSetTemp.setText("Remove Template Card");
+                    buttonGen.setDisable(false);
+
+                    File tempCardFile = new File(projectDirectory + "/" + "template.pdf");
+                    if(tempCardFile.exists()){ // If template already exists, rename it randomly
+                        String name = String.format("%s.%s", RandomStringUtils.randomAlphanumeric(8), "pdf");
+                        try {
+                            Files.copy(tempCardFile.toPath(), new File(projectDirectory + "/" + name).toPath());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        // Remove template file
+                        tempCardFile.delete();
+                    }
+
+                    tempCardFile = new File(projectDirectory + "/" + "template.pdf");
+                    try {
+                        Files.copy(file.toPath(), tempCardFile.toPath());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                } else {
+                    buttonGen.setDisable(true);
                 }
             }
         });
@@ -314,13 +360,12 @@ public class Main extends Application {
                     for (int i = 0; i < files.length; i++) {
                         try {
                             String name = String.format("%s.%s", RandomStringUtils.randomAlphanumeric(8), "png");
-                            File tempFile = new File("C:/Users/micro/Desktop/TestEnvironment/icons/temp" + name);
+                            File tempFile = new File(projectDirectory + "/icons/temp" + name);
                             Files.copy(files[i].toPath(), tempFile.toPath());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
-
                     rerenderPreviews();
                 }
             }
@@ -333,52 +378,57 @@ public class Main extends Application {
      * Renders icons in Card editor
      */
     public void rerenderPreviews() {
-        File iconDir = new File("C:/Users/micro/Desktop/TestEnvironment/icons");
-        String[] fileList = iconDir.list();
+        File iconDir = new File(projectDirectory + "/" + "icons");
+        if(iconDir.exists()) {
+            String[] fileList = iconDir.list();
 
-        this.previewFlowPane.getChildren().clear(); // Removes all so it can be re rendered
-        for (int i = 0; i < fileList.length; i++) {
-           final File currentFile = new File(iconDir.getAbsolutePath() + "/" + fileList[i]);
+            this.previewFlowPane.getChildren().clear(); // Removes all so it can be re rendered
+            if (fileList != null) {
+                for (int i = 0; i < fileList.length; i++) {
+                    final File currentFile = new File(iconDir.getAbsolutePath() + "/" + fileList[i]);
 
-            HBox hBox = new HBox();
-            hBox.setStyle("-fx-border-style: solid inside; -fx-border-width: 1; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: black;");
-            hBox.setPadding(new Insets(5, 5, 5, 5));
-            hBox.setSpacing(5);
-            hBox.setAlignment(Pos.CENTER);
+                    HBox hBox = new HBox();
+                    hBox.setStyle("-fx-border-style: solid inside; -fx-border-width: 1; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: black;");
+                    hBox.setPadding(new Insets(5, 5, 5, 5));
+                    hBox.setSpacing(5);
+                    hBox.setAlignment(Pos.CENTER);
 
-            Image image = new Image("file:" + iconDir.getAbsolutePath() + "/" + fileList[i]);
-            ImageView imageView = new ImageView(image);
-            imageView.setFitHeight(100);
-            imageView.setFitWidth(100);
-            hBox.getChildren().add(imageView);
+                    Image image = new Image("file:" + iconDir.getAbsolutePath() + "/" + fileList[i]);
+                    ImageView imageView = new ImageView(image);
+                    imageView.setFitHeight(100);
+                    imageView.setFitWidth(100);
+                    hBox.getChildren().add(imageView);
 
-            ComboBox comboBox = new ComboBox(options());
+                    ComboBox comboBox = new ComboBox(options());
 
-            if (fileList[i].length() == 6) { // That being '00.png' = 6
-                try {
-                    comboBox.getSelectionModel().select(fileList[i].substring(0, 2));
-                }
-                catch(Exception e){
-                    System.out.println("2 digit long file name IS NOT A VIABLE NUMBER (1-75)");
-                    System.out.println(fileList[i].substring(0, 2));
+                    if (fileList[i].length() == 6) { // That being '00.png' = 6
+                        try {
+                            comboBox.getSelectionModel().select(fileList[i].substring(0, 2));
+                        } catch (Exception e) {
+                            // ERROR TODO
+                            System.out.println("2 digit long file name IS NOT A VIABLE NUMBER (1-75)");
+                            System.out.println(fileList[i].substring(0, 2));
+                        }
+                    }
+
+                    hBox.getChildren().add(comboBox);
+                    this.previewFlowPane.getChildren().add(hBox);
+
+
+                    comboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+                        if (newValue.toString() == " ") {
+                            newValue = RandomStringUtils.randomAlphanumeric(8);
+                        } else if (newValue.toString().length() == 1) { // Keep length to 2 digits
+                            newValue = 0 + newValue.toString();
+                        }
+
+                        currentFile.renameTo(new File(iconDir.getAbsolutePath() + "/" + newValue + ".png"));
+                        rerenderPreviews();
+                    });
                 }
             }
-
-            hBox.getChildren().add(comboBox);
-
-            this.previewFlowPane.getChildren().add(hBox);
-
-
-            comboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-                if (newValue.toString() == " "){
-                    newValue = RandomStringUtils.randomAlphanumeric(8);
-                } else if (newValue.toString().length() == 1){ // Keep length to 2 digits
-                    newValue = 0 + newValue.toString();
-                }
-
-                currentFile.renameTo(new File(iconDir.getAbsolutePath() + "/" + newValue + ".png"));
-                rerenderPreviews();
-            });
+        } else {
+            // TODO ERROR
         }
     }
 
@@ -399,7 +449,7 @@ public class Main extends Application {
                 currentNum = "0" + Integer.toString(i);
             }
 
-            File currentFile = new File("C:/Users/micro/Desktop/TestEnvironment/icons" + "/" + currentNum + ".png");
+            File currentFile = new File(projectDirectory + "/icons/" + currentNum + ".png");
 
             if(!currentFile.exists()){
                 options.add(currentNum);
@@ -466,10 +516,9 @@ public class Main extends Application {
         return result;
     }
 
-    public static void generatePDF(int numOfCards) throws Exception {
+    public void generatePDF(int numOfCards) throws Exception {
         // Loads Template Card File
-        File file = new File("C:/Users/micro/Desktop/FILES/card.pdf");
-        PDDocument templateDoc = PDDocument.load(file);
+        PDDocument templateDoc = PDDocument.load(templateCard);
         PDPage templatePage = templateDoc.getDocumentCatalog().getPages().get(0);
 
         // Create new PDF
@@ -485,48 +534,43 @@ public class Main extends Application {
             PDPageContentStream contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
 
             // Draws Icon
-            File iconDir = new File("C:/Users/micro/Desktop/TestEnvironment/icons/");
+            File iconDir = new File(projectDirectory + "/icons/");
             int iAdder = 0;
             int jAdder = 0;
 
             // Iterates through each square, places each icon
             for (int i = 0; i < 5; i++) {
                 for (int j = 0; j < 5; j++) {
-                    String currentNum = Integer.toString(cardNumbers[i][j]);
-                    if(cardNumbers[i][j] < 10){
-                        currentNum = "0" + cardNumbers[i][j];
-                    }
-
-                    String path = iconDir + "/" + currentNum + ".png";
-
-
-
-                    System.out.println(path);
-                    System.out.println(new File(path).exists());
-
-
-
-
-
-                    // If icon exists use, otherwise use a Number
-                    // TODO WARNING if failed even once
-                    if(new File(path).exists()) {
-                        PDImageXObject icon = PDImageXObject.createFromFile(path, doc);
-                        contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
+                    if(i == 2 && j == 2){
+                        // Don't render, Free Space
                     } else {
-                        contents.beginText();
-                        contents.setFont(PDType1Font.TIMES_BOLD, 50);
-                        contents.newLineAtOffset(52 + iAdder, 79 + jAdder);
-                        contents.showText(currentNum);
-                        contents.endText();
-                    }
+                        String currentNum = Integer.toString(cardNumbers[i][j]);
+                        if (cardNumbers[i][j] < 10) {
+                            currentNum = "0" + cardNumbers[i][j];
+                        }
 
+                        String path = iconDir + "/" + currentNum + ".png";
+
+                        // If icon exists use, otherwise use a Number
+                        // TODO WARNING if failed even once
+                        if (new File(path).exists()) {
+                            PDImageXObject icon = PDImageXObject.createFromFile(path, doc);
+                            contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
+                        } else {
+                            contents.beginText();
+                            contents.setFont(PDType1Font.TIMES_BOLD, 50);
+                            contents.newLineAtOffset(52 + iAdder, 79 + jAdder);
+                            contents.showText(currentNum);
+                            contents.endText();
+                        }
+                    }
                     // Needs to vary movement every 2nd square
                     if (j % 2 == 0) {
                         jAdder += 105;
                     } else {
                         jAdder += 106;
                     }
+
                 }
                 jAdder = 0;
 
@@ -540,7 +584,7 @@ public class Main extends Application {
             contents.close();
             doc.addPage(page);
         }
-        doc.save("C:/Users/micro/Desktop/FILES/testCard.pdf");
+        doc.save(projectDirectory.getParentFile() + "/Bingo Cards -" + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
         doc.close();
     }
 }
