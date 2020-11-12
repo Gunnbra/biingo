@@ -97,7 +97,7 @@ public class Main extends Application {
         HBox copyBox = new HBox();
         copyBox.setPadding(new Insets(5,5,5,5));
         copyBox.setAlignment(Pos.CENTER_RIGHT);
-        Text copy = new Text("V1.0.0 - Copyright Brady Gunn 2020. All rights reserved");
+        Text copy = new Text("V1.0.1 - Copyright Brady Gunn 2020. All rights reserved");
         copy.setTextAlignment(TextAlignment.RIGHT);
         copyBox.getChildren().add(copy);
         bottomBox.getChildren().add(copyBox);
@@ -586,7 +586,7 @@ public class Main extends Application {
             // Iterates through each square, places each icon
             for (int i = 0; i < 5; i++) {
                 for (int j = 0; j < 5; j++) {
-                    if(i == 2 && j == 2){
+                    if (i == 2 && j == 2) {
                         // Don't render, Free Space
                     } else {
                         String currentNum = Integer.toString(cardNumbers[i][j]);
@@ -628,6 +628,20 @@ public class Main extends Application {
                     iAdder += 106;
                 }
             }
+
+            // Create Page Number in Corner
+            contents.beginText();
+            contents.setFont(PDType1Font.TIMES_BOLD, 50);
+
+            if (n + 1 >= 10) {
+                contents.newLineAtOffset(550, 745);
+            } else {
+                contents.newLineAtOffset(575, 745);
+            }
+            contents.showText(Integer.toString(n + 1));
+            contents.endText();
+
+
             contents.close();
             doc.addPage(page);
         }
