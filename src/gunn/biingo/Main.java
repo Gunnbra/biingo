@@ -48,7 +48,7 @@ public class Main extends Application {
     boolean allNumbers = true;
 
     FlowPane previewFlowPane = null;
-    
+
     public static void main(String[] args) throws Exception {
         launch(args);
     }
@@ -74,6 +74,15 @@ public class Main extends Application {
 
         // Create BorderPane layout and put buttons in an HBox at the bottom
         BorderPane borderLayout = new BorderPane();
+
+        Image image = new Image(getClass().getResource("/assets/logo.png").toExternalForm());
+        ImageView imageView = new ImageView(image);
+        imageView.setFitHeight(200);
+        imageView.setFitWidth(200);
+
+        borderLayout.setCenter(imageView);
+
+
 
         VBox bottomBox = new VBox();
         //Buttons for Bottom
@@ -656,5 +665,4 @@ public class Main extends Application {
             }
         });
     }
-
 }
