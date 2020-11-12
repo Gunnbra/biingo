@@ -23,6 +23,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -44,8 +45,10 @@ public class Main extends Application {
     File projectDirectory = null;
     File templateCard = null;
 
-    FlowPane previewFlowPane = null;
+    boolean allNumbers = true;
 
+    FlowPane previewFlowPane = null;
+    
     public static void main(String[] args) throws Exception {
         launch(args);
     }
@@ -72,16 +75,28 @@ public class Main extends Application {
         // Create BorderPane layout and put buttons in an HBox at the bottom
         BorderPane borderLayout = new BorderPane();
 
+        VBox bottomBox = new VBox();
+        //Buttons for Bottom
         HBox menuHBox = new HBox();
         menuHBox.setAlignment(Pos.BOTTOM_CENTER);
         menuHBox.getChildren().add(buttonLoad);
         menuHBox.getChildren().add(buttonNew);
         menuHBox.setPadding(new Insets(15, 12, 15, 12));
         menuHBox.setSpacing(10);
-        borderLayout.setBottom(menuHBox);
+        bottomBox.getChildren().add(menuHBox);
+        //Copyrights
+        HBox copyBox = new HBox();
+        copyBox.setPadding(new Insets(5,5,5,5));
+        copyBox.setAlignment(Pos.CENTER_RIGHT);
+        Text copy = new Text("V1.0.0 - Copyright Brady Gunn 2020. All rights reserved");
+        copy.setTextAlignment(TextAlignment.RIGHT);
+        copyBox.getChildren().add(copy);
+        bottomBox.getChildren().add(copyBox);
+        //Set to Bottom
+        borderLayout.setBottom(bottomBox);
 
         // Set scene
-        Scene mainMenuScene = new Scene(borderLayout, 300, 250);
+        Scene mainMenuScene = new Scene(borderLayout, 500, 300);
 
         // Set Scene
         primaryStage.setScene(mainMenuScene);
@@ -118,25 +133,25 @@ public class Main extends Application {
      */
     public void createProjectDirectory(File file){
         // Created Project Data Directory
-       String parentPath = file.getParent();
-       String nameProject = file.getName().substring(0, file.getName().length() - 6);
+        String parentPath = file.getParent();
+        String nameProject = file.getName().substring(0, file.getName().length() - 6);
 
-       // Base Data Directory
-       File projectDir = new File(parentPath + "/" + nameProject + ".bingo");
-       projectDir.mkdir();
+        // Base Data Directory
+        File projectDir = new File(parentPath + "/" + nameProject + ".bingo");
+        projectDir.mkdir();
 
-       // Icon Directory
-       File iconDir = new File(projectDir + "/" + "icons");
-       iconDir.mkdir();
+        // Icon Directory
+        File iconDir = new File(projectDir + "/" + "icons");
+        iconDir.mkdir();
 
-       // Project File
+        // Project File
         file.mkdir();
 
         if(projectDir.exists()){
             projectDirectory = projectDir;
             windowCardCreation(false);
         } else {
-           // TODO ERROR
+            warningPopup("PROJECT DIRECTORY DOESNT EXIST - createProjectDirectory()");
         }
     }
 
@@ -145,6 +160,7 @@ public class Main extends Application {
      */
     public void loadProjectDirectory(File file){
         boolean success = true;
+        boolean template = false;
 
         if(file.exists()) {
             projectDirectory = file;
@@ -152,15 +168,20 @@ public class Main extends Application {
             success = false;
         }
 
+        if(!new File(projectDirectory + "/icons").exists()){
+            success = false;
+        }
+
         File tempCard = new File(file + "/" + "template.pdf");
         if(tempCard.exists()){
             templateCard = tempCard;
+            template = true;
         }
 
         if(success){
-            windowCardCreation(true);
+            windowCardCreation(template);
         }else{
-            // TODO ERROR
+            warningPopup("PROJECT DIRECTORY IS INVALID - loadProjectDirectory()");
         }
     }
 
@@ -171,6 +192,14 @@ public class Main extends Application {
         // Scene Creations
         BorderPane mainLayout = new BorderPane();
 
+        // TOP Panel
+        VBox topPanel = new VBox();
+        // Back Button
+        VBox backBox = new VBox();
+        backBox.setPadding(new Insets(2, 2, 2, 2));
+        backBox.setAlignment(Pos.CENTER_LEFT);
+        Button buttonBack = new Button("Back");
+        backBox.getChildren().add(buttonBack);
         // Drop Files Box
         VBox dropVBox = new VBox();
         dropVBox.setStyle("-fx-border-style: dashed inside; -fx-border-width: 2; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: gray;");
@@ -185,8 +214,10 @@ public class Main extends Application {
         // AddFiles Text
         Text dropText = new Text("Or drop PNGs here");
         dropVBox.getChildren().add(dropText);
-        // Set Vbox to layout
-        mainLayout.setTop(dropVBox);
+        // Set to layout
+        topPanel.getChildren().add(backBox);
+        topPanel.getChildren().add(dropVBox);
+        mainLayout.setTop(topPanel);
 
         // Scroll pane to hold icon previews
         ScrollPane scrollPane = new ScrollPane();
@@ -242,7 +273,7 @@ public class Main extends Application {
         rerenderPreviews();
 
         // Setting Scene
-        Scene bingoScene = new Scene(mainLayout, 500, 500);
+        Scene bingoScene = new Scene(mainLayout, 525, 500);
         primaryStage.setScene(bingoScene);
         primaryStage.show();
 
@@ -308,7 +339,7 @@ public class Main extends Application {
 
                 if(file != null){
                     templateCard = file;
-                    buttonSetTemp.setText("Remove Template Card");
+                    buttonSetTemp.setText("Replace Template Card");
                     buttonGen.setDisable(false);
 
                     File tempCardFile = new File(projectDirectory + "/" + "template.pdf");
@@ -334,6 +365,13 @@ public class Main extends Application {
                 } else {
                     buttonGen.setDisable(true);
                 }
+            }
+        });
+
+        buttonBack.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                windowMainMenu();
             }
         });
     }
@@ -405,9 +443,7 @@ public class Main extends Application {
                         try {
                             comboBox.getSelectionModel().select(fileList[i].substring(0, 2));
                         } catch (Exception e) {
-                            // ERROR TODO
-                            System.out.println("2 digit long file name IS NOT A VIABLE NUMBER (1-75)");
-                            System.out.println(fileList[i].substring(0, 2));
+                            warningPopup("TWO DIGIT LONG FILE NAME IS NOT VIABLE (1-75): " + fileList[i].substring(0,2) + " - rerenderPreview()");
                         }
                     }
 
@@ -428,7 +464,7 @@ public class Main extends Application {
                 }
             }
         } else {
-            // TODO ERROR
+            warningPopup("ICON DIRECTORY DOESNT EXIST - rerenderPreview()");
         }
     }
 
@@ -550,13 +586,15 @@ public class Main extends Application {
                         }
 
                         String path = iconDir + "/" + currentNum + ".png";
+                        allNumbers = true;
 
                         // If icon exists use, otherwise use a Number
-                        // TODO WARNING if failed even once
                         if (new File(path).exists()) {
                             PDImageXObject icon = PDImageXObject.createFromFile(path, doc);
                             contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
                         } else {
+                            allNumbers = false;
+
                             contents.beginText();
                             contents.setFont(PDType1Font.TIMES_BOLD, 50);
                             contents.newLineAtOffset(52 + iAdder, 79 + jAdder);
@@ -587,4 +625,36 @@ public class Main extends Application {
         doc.save(projectDirectory.getParentFile() + "/Bingo Cards -" + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
         doc.close();
     }
+
+    public void warningPopup(String warning){
+        BorderPane layout = new BorderPane();
+        VBox vbox = new VBox();
+        vbox.setAlignment(Pos.CENTER);
+        vbox.setPadding(new Insets(10, 10, 10, 10));
+
+        Text errorText = new Text(warning);
+        vbox.getChildren().add(errorText);
+        layout.setCenter(vbox);
+
+        HBox dismissBox = new HBox();
+        dismissBox.setPadding(new Insets(10, 10, 10, 10));
+        dismissBox.setAlignment(Pos.CENTER);
+        Button dismiss = new Button("Dismiss");
+        dismissBox.getChildren().add(dismiss);
+        layout.setBottom(dismissBox);
+
+        Scene errorScene = new Scene(layout, 400, 100);
+        Stage errorStage = new Stage();
+        errorStage.setTitle("ERROR");
+        errorStage.setScene(errorScene);
+        errorStage.show();
+
+        dismiss.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                errorStage.hide();
+            }
+        });
+    }
+
 }
