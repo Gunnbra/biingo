@@ -97,7 +97,7 @@ public class Main extends Application {
         HBox copyBox = new HBox();
         copyBox.setPadding(new Insets(5,5,5,5));
         copyBox.setAlignment(Pos.CENTER_RIGHT);
-        Text copy = new Text("V1.0.1 - Copyright Brady Gunn 2020. All rights reserved");
+        Text copy = new Text("V1.0.2 - Copyright Brady Gunn 2020. All rights reserved");
         copy.setTextAlignment(TextAlignment.RIGHT);
         copyBox.getChildren().add(copy);
         bottomBox.getChildren().add(copyBox);
@@ -250,6 +250,7 @@ public class Main extends Application {
         templatePane.setSpacing(10);
         templatePane.setPadding(new Insets(10, 10, 10, 10));
         Button buttonSetTemp = new Button("No Template Specified");
+        Button buttonRemTemp = new Button("X");
         templatePane.getChildren().add(buttonSetTemp);
         bottomPane.getChildren().add(templatePane);
         // Generate Panel
@@ -273,7 +274,10 @@ public class Main extends Application {
 
         // If there is a template on load
         if(isThereATemplate) {
-            buttonSetTemp.setText("Replace Template Card");
+            buttonSetTemp.setDisable(true);
+            buttonSetTemp.setText("Template Set");
+            templatePane.getChildren().add(buttonRemTemp);
+
             buttonGen.setDisable(false);
         }
 
@@ -348,7 +352,10 @@ public class Main extends Application {
 
                 if(file != null){
                     templateCard = file;
-                    buttonSetTemp.setText("Replace Template Card");
+                    buttonSetTemp.setDisable(true);
+                    buttonSetTemp.setText("Template Set");
+                    templatePane.getChildren().add(buttonRemTemp);
+
                     buttonGen.setDisable(false);
 
                     File tempCardFile = new File(projectDirectory + "/" + "template.pdf");
@@ -374,6 +381,16 @@ public class Main extends Application {
                 } else {
                     buttonGen.setDisable(true);
                 }
+            }
+        });
+
+        buttonRemTemp.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                templatePane.getChildren().remove(buttonRemTemp);
+                buttonSetTemp.setDisable(false);
+                buttonSetTemp.setText("Template Not Specified");
+                buttonGen.setDisable(true);
             }
         });
 
