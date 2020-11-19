@@ -254,23 +254,39 @@ public class Main extends Application {
         templatePane.getChildren().add(buttonSetTemp);
         bottomPane.getChildren().add(templatePane);
         // Generate Panel
-        HBox generatePane = new HBox();
-        generatePane.setAlignment(Pos.CENTER);
-        generatePane.setSpacing(10);
-        generatePane.setPadding(new Insets(10, 10, 10, 10));
-        Button buttonGen = new Button("Generate");
-        buttonGen.setDisable(true);
+        HBox pagesPane = new HBox();
+        pagesPane.setAlignment(Pos.CENTER);
+        pagesPane.setSpacing(10);
+        pagesPane.setPadding(new Insets(2, 10, 2, 10));
         // Generate and create numbers for # of cards to generate
         ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
         for(int i = 1; i < 100; i++){
             genNumbers.add("x" + Integer.toString(i));
         }
+        Text comboText = new Text("Pages per Booklet:");
         ComboBox comboNumber = new ComboBox(genNumbers);
         comboNumber.getSelectionModel().select("x1");
-        generatePane.getChildren().add(comboNumber);
-        generatePane.getChildren().add(buttonGen);
-        bottomPane.getChildren().add(generatePane);
+        pagesPane.getChildren().add(comboText);
+        pagesPane.getChildren().add(comboNumber);
+        bottomPane.getChildren().add(pagesPane);
+
+        HBox bookPane = new HBox();
+        bookPane.setAlignment(Pos.CENTER);
+        bookPane.setSpacing(10);
+        bookPane.setPadding(new Insets(2, 10, 2, 10));
+        Text bookText = new Text("Booklets per PDF:");
+        ComboBox comboBook = new ComboBox(genNumbers);
+        comboBook.getSelectionModel().select("x1");
+        bookPane.getChildren().add(bookText);
+        bookPane.getChildren().add(comboBook);
+        bottomPane.getChildren().add(bookPane);
+
+        Button buttonGen = new Button("Generate");
+        buttonGen.setDisable(true);
+        bottomPane.getChildren().add(buttonGen);
+
         mainLayout.setBottom(bottomPane);
+
 
         // If there is a template on load
         if(isThereATemplate) {
@@ -335,7 +351,7 @@ public class Main extends Application {
             @Override
             public void handle(ActionEvent actionEvent) {
                 try {
-                    generatePDF(Integer.parseInt(comboNumber.getValue().toString().substring(1)));
+                    generatePDF(Integer.parseInt(comboNumber.getValue().toString().substring(1)), Integer.parseInt(comboBook.getValue().toString().substring(1)));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -578,7 +594,7 @@ public class Main extends Application {
         return result;
     }
 
-    public void generatePDF(int numOfCards) throws Exception {
+    public void generatePDF(int numOfCards, int numOfBooks) throws Exception {
         // Loads Template Card File
         PDDocument templateDoc = PDDocument.load(templateCard);
         PDPage templatePage = templateDoc.getDocumentCatalog().getPages().get(0);
@@ -587,80 +603,84 @@ public class Main extends Application {
         PDDocument doc = new PDDocument();
 
         // Create new page based on # of cards specified
-        for (int n = 0; n < numOfCards; n++) {
-            // Create array of card #'s
-            int[][] cardNumbers = randomizeCard();
+        for(int b = 0; b < numOfBooks; b++) {
+            for (int n = 0; n < numOfCards; n++) {
+                // Create array of card #'s
+                int[][] cardNumbers = randomizeCard();
 
-            // Create new page based on template
-            PDPage page = templateDoc.importPage(templatePage);
-            PDPageContentStream contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
+                // Create new page based on template
+                PDPage page = templateDoc.importPage(templatePage);
+                PDPageContentStream contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
 
-            // Draws Icon
-            File iconDir = new File(projectDirectory + "/icons/");
-            int iAdder = 0;
-            int jAdder = 0;
+                // Draws Icon
+                File iconDir = new File(projectDirectory + "/icons/");
+                int iAdder = 0;
+                int jAdder = 0;
 
-            // Iterates through each square, places each icon
-            for (int i = 0; i < 5; i++) {
-                for (int j = 0; j < 5; j++) {
-                    if (i == 2 && j == 2) {
-                        // Don't render, Free Space
-                    } else {
-                        String currentNum = Integer.toString(cardNumbers[i][j]);
-                        if (cardNumbers[i][j] < 10) {
-                            currentNum = "0" + cardNumbers[i][j];
-                        }
-
-                        String path = iconDir + "/" + currentNum + ".png";
-                        allNumbers = true;
-
-                        // If icon exists use, otherwise use a Number
-                        if (new File(path).exists()) {
-                            PDImageXObject icon = PDImageXObject.createFromFile(path, doc);
-                            contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
+                // Iterates through each square, places each icon
+                for (int i = 0; i < 5; i++) {
+                    for (int j = 0; j < 5; j++) {
+                        if (i == 2 && j == 2) {
+                            // Don't render, Free Space
                         } else {
-                            allNumbers = false;
+                            String currentNum = Integer.toString(cardNumbers[i][j]);
+                            if (cardNumbers[i][j] < 10) {
+                                currentNum = "0" + cardNumbers[i][j];
+                            }
 
-                            contents.beginText();
-                            contents.setFont(PDType1Font.TIMES_BOLD, 50);
-                            contents.newLineAtOffset(52 + iAdder, 79 + jAdder);
-                            contents.showText(currentNum);
-                            contents.endText();
+                            String path = iconDir + "/" + currentNum + ".png";
+                            allNumbers = true;
+
+                            // If icon exists use, otherwise use a Number
+                            if (new File(path).exists()) {
+                                PDImageXObject icon = PDImageXObject.createFromFile(path, doc);
+                                contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
+                            } else {
+                                allNumbers = false;
+
+                                contents.beginText();
+                                contents.setFont(PDType1Font.TIMES_BOLD, 50);
+                                contents.newLineAtOffset(52 + iAdder, 79 + jAdder);
+                                contents.showText(currentNum);
+                                contents.endText();
+                            }
                         }
+                        // Needs to vary movement every 2nd square
+                        if (j % 2 == 0) {
+                            jAdder += 105;
+                        } else {
+                            jAdder += 106;
+                        }
+
                     }
+                    jAdder = 0;
+
                     // Needs to vary movement every 2nd square
-                    if (j % 2 == 0) {
-                        jAdder += 105;
+                    if (i % 2 == 0) {
+                        iAdder += 105;
                     } else {
-                        jAdder += 106;
+                        iAdder += 106;
                     }
-
                 }
-                jAdder = 0;
 
-                // Needs to vary movement every 2nd square
-                if (i % 2 == 0) {
-                    iAdder += 105;
-                } else {
-                    iAdder += 106;
+                if(numOfCards > 1) {
+                    // Create Page Number in Corner
+                    contents.beginText();
+                    contents.setFont(PDType1Font.TIMES_BOLD, 50);
+
+                    if (n + 1 >= 10) {
+                        contents.newLineAtOffset(550, 745);
+                    } else {
+                        contents.newLineAtOffset(575, 745);
+                    }
+                    contents.showText(Integer.toString(n + 1));
+                    contents.endText();
                 }
+
+
+                contents.close();
+                doc.addPage(page);
             }
-
-            // Create Page Number in Corner
-            contents.beginText();
-            contents.setFont(PDType1Font.TIMES_BOLD, 50);
-
-            if (n + 1 >= 10) {
-                contents.newLineAtOffset(550, 745);
-            } else {
-                contents.newLineAtOffset(575, 745);
-            }
-            contents.showText(Integer.toString(n + 1));
-            contents.endText();
-
-
-            contents.close();
-            doc.addPage(page);
         }
         doc.save(projectDirectory.getParentFile() + "/Bingo Cards -" + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
         doc.close();
