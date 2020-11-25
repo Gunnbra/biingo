@@ -10,9 +10,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
@@ -41,13 +39,10 @@ import java.util.Random;
 
 public class Main extends Application {
     Stage primaryStage = null;
-
     File projectDirectory = null;
-    File templateCard = null;
-
     boolean allNumbers = true;
-
     FlowPane previewFlowPane = null;
+    FlowPane previewTemplateFlowPane = null;
 
     public static void main(String[] args) throws Exception {
         launch(args);
@@ -153,12 +148,15 @@ public class Main extends Application {
         File iconDir = new File(projectDir + "/" + "icons");
         iconDir.mkdir();
 
+        File templateDir = new File(projectDir + "/" + "templates");
+        templateDir.mkdir();
+
         // Project File
         file.mkdir();
 
         if(projectDir.exists()){
             projectDirectory = projectDir;
-            windowCardCreation(false);
+            windowProject();
         } else {
             warningPopup("PROJECT DIRECTORY DOESNT EXIST - createProjectDirectory()");
         }
@@ -169,7 +167,6 @@ public class Main extends Application {
      */
     public void loadProjectDirectory(File file){
         boolean success = true;
-        boolean template = false;
 
         if(file.exists()) {
             projectDirectory = file;
@@ -181,14 +178,8 @@ public class Main extends Application {
             success = false;
         }
 
-        File tempCard = new File(file + "/" + "template.pdf");
-        if(tempCard.exists()){
-            templateCard = tempCard;
-            template = true;
-        }
-
         if(success){
-            windowCardCreation(template);
+            windowProject();
         }else{
             warningPopup("PROJECT DIRECTORY IS INVALID - loadProjectDirectory()");
         }
@@ -197,18 +188,32 @@ public class Main extends Application {
     /**
      * Scene: Card editor
      */
-    public void windowCardCreation(boolean isThereATemplate) {
+    public void windowProject() {
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        Tab tabNumEditor = new Tab("Card Editor");
+        Tab tabBookletEditor = new Tab("Booklet Editor");
+        Tab tabGeneration = new Tab("Generate Cards");
+
+        tabPane.getTabs().add(tabNumEditor);
+        tabPane.getTabs().add(tabBookletEditor);
+        tabPane.getTabs().add(tabGeneration);
+
+        tabCardEditor(tabNumEditor);
+        tabBookletEditor(tabBookletEditor);
+
+        // Setting Scene
+        Scene bingoScene = new Scene(tabPane, 525, 500);
+        primaryStage.setScene(bingoScene);
+        primaryStage.show();
+    }
+
+    public void tabCardEditor(Tab tab) {
         // Scene Creations
         BorderPane mainLayout = new BorderPane();
 
         // TOP Panel
         VBox topPanel = new VBox();
-        // Back Button
-        VBox backBox = new VBox();
-        backBox.setPadding(new Insets(2, 2, 2, 2));
-        backBox.setAlignment(Pos.CENTER_LEFT);
-        Button buttonBack = new Button("Back");
-        backBox.getChildren().add(buttonBack);
         // Drop Files Box
         VBox dropVBox = new VBox();
         dropVBox.setStyle("-fx-border-style: dashed inside; -fx-border-width: 2; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: gray;");
@@ -224,7 +229,6 @@ public class Main extends Application {
         Text dropText = new Text("Or drop PNGs here");
         dropVBox.getChildren().add(dropText);
         // Set to layout
-        topPanel.getChildren().add(backBox);
         topPanel.getChildren().add(dropVBox);
         mainLayout.setTop(topPanel);
 
@@ -241,70 +245,11 @@ public class Main extends Application {
         scrollPane.setContent(previewFlowPane);
         mainLayout.setCenter(scrollPane);
 
-        // Bottom panel
-        VBox bottomPane = new VBox();
-        bottomPane.setAlignment(Pos.CENTER);
-        // Template Panel
-        HBox templatePane = new HBox();
-        templatePane.setAlignment(Pos.CENTER);
-        templatePane.setSpacing(10);
-        templatePane.setPadding(new Insets(10, 10, 10, 10));
-        Button buttonSetTemp = new Button("No Template Specified");
-        Button buttonRemTemp = new Button("X");
-        templatePane.getChildren().add(buttonSetTemp);
-        bottomPane.getChildren().add(templatePane);
-        // Generate Panel
-        HBox pagesPane = new HBox();
-        pagesPane.setAlignment(Pos.CENTER);
-        pagesPane.setSpacing(10);
-        pagesPane.setPadding(new Insets(2, 10, 2, 10));
-        // Generate and create numbers for # of cards to generate
-        ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
-        for(int i = 1; i < 100; i++){
-            genNumbers.add("x" + Integer.toString(i));
-        }
-        Text comboText = new Text("Pages per Booklet:");
-        ComboBox comboNumber = new ComboBox(genNumbers);
-        comboNumber.getSelectionModel().select("x1");
-        pagesPane.getChildren().add(comboText);
-        pagesPane.getChildren().add(comboNumber);
-        bottomPane.getChildren().add(pagesPane);
-
-        HBox bookPane = new HBox();
-        bookPane.setAlignment(Pos.CENTER);
-        bookPane.setSpacing(10);
-        bookPane.setPadding(new Insets(2, 10, 2, 10));
-        Text bookText = new Text("Booklets per PDF:");
-        ComboBox comboBook = new ComboBox(genNumbers);
-        comboBook.getSelectionModel().select("x1");
-        bookPane.getChildren().add(bookText);
-        bookPane.getChildren().add(comboBook);
-        bottomPane.getChildren().add(bookPane);
-
-        Button buttonGen = new Button("Generate");
-        buttonGen.setDisable(true);
-        bottomPane.getChildren().add(buttonGen);
-
-        mainLayout.setBottom(bottomPane);
-
-
-        // If there is a template on load
-        if(isThereATemplate) {
-            buttonSetTemp.setDisable(true);
-            buttonSetTemp.setText("Template Set");
-            templatePane.getChildren().add(buttonRemTemp);
-
-            buttonGen.setDisable(false);
-        }
-
         // Render Preview Icons
         this.previewFlowPane = previewFlowPane;
         rerenderPreviews();
 
-        // Setting Scene
-        Scene bingoScene = new Scene(mainLayout, 525, 500);
-        primaryStage.setScene(bingoScene);
-        primaryStage.show();
+        tab.setContent(mainLayout);
 
         // --------------- LISTENERS -----------------------------------
 
@@ -345,8 +290,162 @@ public class Main extends Application {
                 rerenderPreviews();
             }
         });
+    }
 
-        // Generate Button OnAction
+    public void tabBookletEditor(Tab tab){
+        // Scene Creations
+        BorderPane mainLayout = new BorderPane();
+
+        VBox topPane = new VBox();
+        topPane.setPadding(new Insets(5, 2, 2, 2));
+        //Pages per Booklet Pane
+        HBox pagesPane = new HBox();
+        pagesPane.setAlignment(Pos.CENTER);
+        pagesPane.setSpacing(10);
+        pagesPane.setPadding(new Insets(2, 10, 2, 10));
+        // Generate and create numbers for # of cards to generate
+        ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
+        for(int i = 1; i < 100; i++){
+            genNumbers.add("x" + Integer.toString(i));
+        }
+        Text comboText = new Text("Games per Booklet:");
+        ComboBox comboNumber = new ComboBox(genNumbers);
+        comboNumber.getSelectionModel().select("x1");
+        pagesPane.getChildren().add(comboText);
+        pagesPane.getChildren().add(comboNumber);
+        topPane.getChildren().add(pagesPane);
+
+        // Drop Files Box
+        VBox dropVBox = new VBox();
+        dropVBox.setStyle("-fx-border-style: dashed inside; -fx-border-width: 2; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: gray;");
+        dropVBox.setMinHeight(100);
+        dropVBox.setAlignment(Pos.CENTER);
+        dropVBox.setSpacing(10);
+        // AddFiles Button
+        Button buttonGetFiles = new Button("Choose Templates");
+        buttonGetFiles.setMinWidth(200);
+        buttonGetFiles.setMinHeight(30);
+        dropVBox.getChildren().add(buttonGetFiles);
+        // AddFiles Text
+        Text dropText = new Text("Or drop PDFs here");
+        dropVBox.getChildren().add(dropText);
+        topPane.getChildren().add(dropVBox);
+
+        // SET TOP
+        mainLayout.setTop(topPane);
+
+        // Center Content
+        // Scroll pane to hold template previews
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setFitToHeight(true);
+        scrollPane.setFitToWidth(true);
+        // Flow pane, goes inside Scroll pane
+        FlowPane previewFlowPane = new FlowPane();
+        previewFlowPane.setPadding(new Insets(40, 20, 20, 40));
+        previewFlowPane.setVgap(25);
+        previewFlowPane.setHgap(25);
+        // Set to layout
+        scrollPane.setContent(previewFlowPane);
+        mainLayout.setCenter(scrollPane);
+
+        // Render Preview Icons
+        this.previewTemplateFlowPane = previewFlowPane;
+        rerenderTemplatePreviews();
+
+
+
+        tab.setContent(mainLayout);
+
+
+
+
+        // Listeners ----------------------------------------------------
+        // DropBox DragOver Event
+        dropVBox.setOnDragOver(new EventHandler<DragEvent>() {
+            @Override
+            public void handle(DragEvent event) {
+                Dragboard db = event.getDragboard();
+                if (db.hasFiles()) {
+                    event.acceptTransferModes(TransferMode.COPY);
+                } else {
+                    event.consume();
+                }
+            }
+        });
+
+        // DropBox OnDragOver Event
+        dropVBox.setOnDragDropped(onDropTemplateHandler);
+
+        // GetFiles Button OnAction
+        buttonGetFiles.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
+                Object[] files = fileChooser.showOpenMultipleDialog(primaryStage).toArray();
+
+                for (int i = 0; i < files.length; i++) {
+                    try {
+                        String name = String.format("%s.%s", RandomStringUtils.randomAlphanumeric(8), "png");
+                        File tempFile = new File(projectDirectory + "/templates/temp" + name);
+                        Files.copy(new File(files[i].toString()).toPath(), tempFile.toPath());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                rerenderTemplatePreviews();
+            }
+        });
+
+    //OLDDDD-------------------------------------
+        /*
+
+
+        // Bottom panel
+        VBox bottomPane = new VBox();
+        bottomPane.setAlignment(Pos.CENTER);
+        // Template Panel
+        HBox templatePane = new HBox();
+        templatePane.setAlignment(Pos.CENTER);
+        templatePane.setSpacing(10);
+        templatePane.setPadding(new Insets(10, 10, 10, 10));
+        Button buttonSetTemp = new Button("No Template Specified");
+        Button buttonRemTemp = new Button("X");
+        templatePane.getChildren().add(buttonSetTemp);
+        bottomPane.getChildren().add(templatePane);
+        // Generate Panel
+
+        bottomPane.getChildren().add(pagesPane);
+
+        HBox bookPane = new HBox();
+        bookPane.setAlignment(Pos.CENTER);
+        bookPane.setSpacing(10);
+        bookPane.setPadding(new Insets(2, 10, 2, 10));
+        Text bookText = new Text("Booklets per PDF:");
+        ComboBox comboBook = new ComboBox(genNumbers);
+        comboBook.getSelectionModel().select("x1");
+        bookPane.getChildren().add(bookText);
+        bookPane.getChildren().add(comboBook);
+        bottomPane.getChildren().add(bookPane);
+
+        Button buttonGen = new Button("Generate");
+        buttonGen.setDisable(true);
+        bottomPane.getChildren().add(buttonGen);
+
+       mainLayout.setBottom(bottomPane);
+
+
+        // If there is a template on load
+        if(isThereATemplate) {
+            buttonSetTemp.setDisable(true);
+            buttonSetTemp.setText("Template Set");
+            templatePane.getChildren().add(buttonRemTemp);
+
+            buttonGen.setDisable(false);
+        }
+
+         // Generate Button OnAction
         buttonGen.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -410,12 +509,8 @@ public class Main extends Application {
             }
         });
 
-        buttonBack.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                windowMainMenu();
-            }
-        });
+        */
+
     }
 
     /**
@@ -441,6 +536,42 @@ public class Main extends Application {
                         try {
                             String name = String.format("%s.%s", RandomStringUtils.randomAlphanumeric(8), "png");
                             File tempFile = new File(projectDirectory + "/icons/temp" + name);
+                            Files.copy(files[i].toPath(), tempFile.toPath());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    rerenderPreviews();
+                }
+            }
+            event.setDropCompleted(success);
+            event.consume();
+        }
+    };
+
+    /**
+     * Event Listener: On File Drop
+     */
+    EventHandler<DragEvent> onDropTemplateHandler = new EventHandler<DragEvent>() {
+        @Override
+        public void handle(DragEvent event) {
+            Dragboard db = event.getDragboard();
+            boolean success = false;
+            if (db.hasFiles()) {
+                success = true;
+                File[] files = db.getFiles().toArray(new File[0]);
+                for (int i = 0; i < files.length; i++) { // Checks if all files end with .png, if one doesn't, failure
+                    String fileExt = files[i].getName();
+                    if (!fileExt.contains(".png")) {
+                        success = false;
+                        break;
+                    }
+                }
+                if (success) {
+                    for (int i = 0; i < files.length; i++) {
+                        try {
+                            String name = String.format("%s.%s", RandomStringUtils.randomAlphanumeric(8), "png");
+                            File tempFile = new File(projectDirectory + "/templates/temp" + name);
                             Files.copy(files[i].toPath(), tempFile.toPath());
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -507,6 +638,62 @@ public class Main extends Application {
             }
         } else {
             warningPopup("ICON DIRECTORY DOESNT EXIST - rerenderPreview()");
+        }
+    }
+
+    /**
+     * Renders Templates in Card editor
+     */
+    public void rerenderTemplatePreviews() {
+        File templateDir = new File(projectDirectory + "/" + "templates");
+        if(templateDir.exists()) {
+            String[] fileList = templateDir.list();
+
+            this.previewTemplateFlowPane.getChildren().clear(); // Removes all so it can be re rendered
+            if (fileList != null) {
+                for (int i = 0; i < fileList.length; i++) {
+                    final File currentFile = new File(templateDir.getAbsolutePath() + "/" + fileList[i]);
+
+                    HBox hBox = new HBox();
+                    hBox.setStyle("-fx-border-style: solid inside; -fx-border-width: 1; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: black;");
+                    hBox.setPadding(new Insets(5, 5, 5, 5));
+                    hBox.setSpacing(5);
+                    hBox.setAlignment(Pos.CENTER);
+
+                    Image image = new Image("file:" + templateDir.getAbsolutePath() + "/" + fileList[i]);
+                    ImageView imageView = new ImageView(image);
+                    imageView.setFitHeight(100);
+                    imageView.setFitWidth(100);
+                    hBox.getChildren().add(imageView);
+
+                    ComboBox comboBox = new ComboBox(options());
+
+                    if (fileList[i].length() == 6) { // That being '00.png' = 6
+                        try {
+                            comboBox.getSelectionModel().select(fileList[i].substring(0, 2));
+                        } catch (Exception e) {
+                            warningPopup("TWO DIGIT LONG FILE NAME IS NOT VIABLE (1-99): " + fileList[i].substring(0,2) + " - rerenderPreview()");
+                        }
+                    }
+
+                    hBox.getChildren().add(comboBox);
+                    this.previewTemplateFlowPane.getChildren().add(hBox);
+
+
+                    comboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+                        if (newValue.toString() == " ") {
+                            newValue = RandomStringUtils.randomAlphanumeric(8);
+                        } else if (newValue.toString().length() == 1) { // Keep length to 2 digits
+                            newValue = 0 + newValue.toString();
+                        }
+
+                        currentFile.renameTo(new File(templateDir.getAbsolutePath() + "/" + newValue + ".pdf"));
+                        rerenderTemplatePreviews();
+                    });
+                }
+            }
+        } else {
+            warningPopup("TEMPLATE DIRECTORY DOESNT EXIST - rerenderTemplatePreview()");
         }
     }
 
@@ -595,9 +782,7 @@ public class Main extends Application {
     }
 
     public void generatePDF(int numOfCards, int numOfBooks) throws Exception {
-        // Loads Template Card File
-        PDDocument templateDoc = PDDocument.load(templateCard);
-        PDPage templatePage = templateDoc.getDocumentCatalog().getPages().get(0);
+        String templateCard = projectDirectory + "/templates/01.png"; // TODO TEMPORARY
 
         // Create new PDF
         PDDocument doc = new PDDocument();
@@ -609,8 +794,12 @@ public class Main extends Application {
                 int[][] cardNumbers = randomizeCard();
 
                 // Create new page based on template
-                PDPage page = templateDoc.importPage(templatePage);
+                PDPage page = new PDPage();
                 PDPageContentStream contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
+
+                // Draw Template TODO
+                PDImageXObject template = PDImageXObject.createFromFile(templateCard, doc);
+                contents.drawImage(template, 0, 0, page.getCropBox().getWidth(), page.getCropBox().getHeight());
 
                 // Draws Icon
                 File iconDir = new File(projectDirectory + "/icons/");
