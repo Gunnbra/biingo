@@ -845,6 +845,7 @@ public class Main extends Application {
                 imageView.setFitWidth(30);
                 numBox.getChildren().add(imageView);
 
+
                 CheckBox checkNum = new CheckBox();
                 numBox.getChildren().add(checkNum);
 
