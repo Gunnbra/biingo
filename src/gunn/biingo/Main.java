@@ -11,15 +11,15 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
@@ -32,6 +32,8 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -194,16 +196,20 @@ public class Main extends Application {
         Tab tabNumEditor = new Tab("Card Editor");
         Tab tabBookletEditor = new Tab("Booklet Editor");
         Tab tabGeneration = new Tab("Generate Cards");
+        Tab tabPlay = new Tab("Play Tracker");
 
         tabPane.getTabs().add(tabNumEditor);
         tabPane.getTabs().add(tabBookletEditor);
         tabPane.getTabs().add(tabGeneration);
+        tabPane.getTabs().add(tabPlay);
 
         tabCardEditor(tabNumEditor);
         tabBookletEditor(tabBookletEditor);
+        tabGenerate(tabGeneration);
+        tabPlayGame(tabPlay);
 
         // Setting Scene
-        Scene bingoScene = new Scene(tabPane, 525, 500);
+        Scene bingoScene = new Scene(tabPane, 750, 950);
         primaryStage.setScene(bingoScene);
         primaryStage.show();
     }
@@ -292,7 +298,7 @@ public class Main extends Application {
         });
     }
 
-    public void tabBookletEditor(Tab tab){
+    public void tabBookletEditor(Tab tab) {
         // Scene Creations
         BorderPane mainLayout = new BorderPane();
 
@@ -513,6 +519,108 @@ public class Main extends Application {
 
     }
 
+    public void tabGenerate(Tab tab) {
+        // Scene Creations
+        BorderPane mainLayout = new BorderPane();
+        VBox vbox = new VBox();
+        vbox.setAlignment(Pos.CENTER);
+        vbox.setSpacing(10);
+        vbox.setPadding(new Insets(2, 10, 2, 10));
+
+        //  # of Booklets combo box
+        HBox comboBox = new HBox();
+        comboBox.setAlignment(Pos.CENTER);
+        comboBox.setSpacing(10);
+        comboBox.setPadding(new Insets(2, 10, 2, 10));
+        // Generate 100 numbers
+        ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
+        for(int i = 1; i < 100; i++){
+            genNumbers.add("x" + Integer.toString(i));
+        }
+        Text comboText = new Text("Booklets Printed:");
+        ComboBox comboNumber = new ComboBox(genNumbers);
+        comboNumber.getSelectionModel().select("x1");
+        comboBox.getChildren().add(comboText);
+        comboBox.getChildren().add(comboNumber);
+
+        //Checkboxes
+        HBox checkBox = new HBox();
+        checkBox.setAlignment(Pos.CENTER);
+        checkBox.setSpacing(10);
+        checkBox.setPadding(new Insets(2, 10, 2, 10));
+        // Elements
+        CheckBox checkPageNum = new CheckBox("Page Numbers");
+        checkBox.getChildren().add(checkPageNum);
+
+        // Generate button
+        Button buttonGenerate = new Button("Generate");
+        // Add all elements to main layout and send to Tab
+        vbox.getChildren().add(comboBox);
+        vbox.getChildren().add(checkBox);
+        vbox.getChildren().add(buttonGenerate);
+        mainLayout.setCenter(vbox);
+        tab.setContent(mainLayout);
+    }
+
+    public void tabPlayGame(Tab tab) {
+        // Scene Creations
+        BorderPane mainLayout = new BorderPane();
+
+        // CENTER
+        VBox callBox = new VBox();
+        callBox.setAlignment(Pos.CENTER);
+        callBox.setSpacing(10);
+        callBox.setPadding(new Insets(0, 10, 0, 10));
+        // B I N G O
+        HBox bingoBox = new HBox();
+        bingoBox.setAlignment(Pos.CENTER);
+        bingoBox.setSpacing(90);
+        bingoBox.setPadding(new Insets(0, 0, 0, 0));
+        Text textB = new Text("B");
+        textB.setStyle("-fx-font-size: 50px; -fx-font-weight: bold");
+        textB.setTextAlignment(TextAlignment.CENTER);
+        Text textI = new Text("I");
+        textI.setStyle("-fx-font-size: 50px; -fx-font-weight: bold");
+        textI.setTextAlignment(TextAlignment.CENTER);
+        Text textN = new Text("N");
+        textN.setStyle("-fx-font-size: 50px; -fx-font-weight: bold");
+        textN.setTextAlignment(TextAlignment.CENTER);
+        Text textG = new Text("G");
+        textG.setStyle("-fx-font-size: 50px; -fx-font-weight: bold");
+        textG.setTextAlignment(TextAlignment.CENTER);
+        Text textO = new Text("O");
+        textO.setStyle("-fx-font-size: 50px; -fx-font-weight: bold");
+        textO.setTextAlignment(TextAlignment.CENTER);
+        bingoBox.getChildren().add(textB);
+        bingoBox.getChildren().add(textI);
+        bingoBox.getChildren().add(textN);
+        bingoBox.getChildren().add(textG);
+        bingoBox.getChildren().add(textO);
+        callBox.getChildren().add(bingoBox);
+        // Called Numbers
+        HBox calledNumbers = renderPlayTracker();
+        callBox.getChildren().add(calledNumbers);
+        mainLayout.setCenter(callBox);
+
+        // BOTTOM
+        HBox optionBox = new HBox();
+        optionBox.setAlignment(Pos.CENTER);
+        optionBox.setSpacing(10);
+        optionBox.setPadding(new Insets(10, 10, 10, 10));
+        // Elements
+        Button buttonReset = new Button("Reset Board");
+        Button buttonVerify = new Button("Verification");
+        Button buttonLastCalled = new Button("Last Called");
+        Button buttonViewCards = new Button("Card List");
+        optionBox.getChildren().add(buttonReset);
+        optionBox.getChildren().add(buttonVerify);
+        optionBox.getChildren().add(buttonLastCalled);
+        optionBox.getChildren().add(buttonViewCards);
+        mainLayout.setBottom(optionBox);
+
+        tab.setContent(mainLayout);
+    }
+
     /**
      * Event Listener: On File Drop
      */
@@ -695,6 +803,65 @@ public class Main extends Application {
         } else {
             warningPopup("TEMPLATE DIRECTORY DOESNT EXIST - rerenderTemplatePreview()");
         }
+    }
+
+    /**
+     * Renders all possible numbers with a checkbox, to keep track of what has been called
+     */
+    // TODO WIP
+    public HBox renderPlayTracker() {
+        // Main PlayBox
+        HBox playBox = new HBox();
+        playBox.setAlignment(Pos.CENTER);
+        playBox.setSpacing(10);
+        playBox.setPadding(new Insets(0, 10, 10, 10));
+
+        // File Locations
+        File iconDir = new File(projectDirectory + "/" + "icons");
+        String[] fileList = iconDir.list();
+
+        for (int i = 0; i < 5; i ++) {
+            VBox vBox = new VBox();
+            vBox.setAlignment(Pos.CENTER);
+            vBox.setPadding(new Insets(0, 10, 0, 10));
+
+            for (int j = 1; j < 16; j++) {
+                HBox numBox = new HBox();
+                numBox.setAlignment(Pos.CENTER);
+                numBox.setPadding(new Insets(0, 10, 0, 10));
+
+                final File fileNum = new File(iconDir.getAbsolutePath() + "/" + "01.png");
+                numBox.setStyle("-fx-border-style: solid inside; -fx-border-width: 1; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: black;");
+                numBox.setPadding(new Insets(5, 5, 5, 5));
+                numBox.setSpacing(5);
+                numBox.setAlignment(Pos.CENTER);
+
+                Text textNumber = new Text(Integer.toString(j));
+                numBox.getChildren().add(textNumber);
+
+                Image image = new Image("file:" + iconDir.getAbsolutePath() + "/" + fileList[i]);
+                ImageView imageView = new ImageView(image);
+                imageView.setFitHeight(30);
+                imageView.setFitWidth(30);
+                numBox.getChildren().add(imageView);
+
+                CheckBox checkNum = new CheckBox();
+                numBox.getChildren().add(checkNum);
+
+                vBox.getChildren().add(numBox);
+            }
+            playBox.getChildren().add(vBox);
+        }
+
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setContent(playBox);
+
+        HBox calledBox = new HBox();
+        calledBox.setAlignment(Pos.CENTER);
+        calledBox.setSpacing(10);
+        calledBox.setPadding(new Insets(0, 10, 0, 10));
+        calledBox.getChildren().add(scrollPane);
+        return calledBox;
     }
 
     /**
