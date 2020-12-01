@@ -1,6 +1,8 @@
 package gunn.biingo;
 
 import javafx.application.Application;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -11,15 +13,15 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.Button;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
-import javafx.scene.layout.*;
-import javafx.scene.text.Font;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
@@ -31,11 +33,11 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
-import javax.swing.*;
-import java.awt.*;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.util.Random;
 
@@ -43,8 +45,11 @@ public class Main extends Application {
     Stage primaryStage = null;
     File projectDirectory = null;
     boolean allNumbers = true;
+
     FlowPane previewFlowPane = null;
     FlowPane previewTemplateFlowPane = null;
+
+    int gamesPerBooklet = 1;
 
     public static void main(String[] args) throws Exception {
         launch(args);
@@ -94,7 +99,7 @@ public class Main extends Application {
         HBox copyBox = new HBox();
         copyBox.setPadding(new Insets(5,5,5,5));
         copyBox.setAlignment(Pos.CENTER_RIGHT);
-        Text copy = new Text("V1.0.2 - Copyright Brady Gunn 2020. All rights reserved");
+        Text copy = new Text("V1.1.0 - Copyright Brady Gunn 2020. All rights reserved");
         copy.setTextAlignment(TextAlignment.RIGHT);
         copyBox.getChildren().add(copy);
         bottomBox.getChildren().add(copyBox);
@@ -153,6 +158,13 @@ public class Main extends Application {
         File templateDir = new File(projectDir + "/" + "templates");
         templateDir.mkdir();
 
+        File propertiesFile = new File(projectDir + "/" + "bingo.properties");
+        try {
+            propertiesFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         // Project File
         file.mkdir();
 
@@ -179,6 +191,22 @@ public class Main extends Application {
         if(!new File(projectDirectory + "/icons").exists()){
             success = false;
         }
+
+        // Get Properties
+        try {
+            Object obj = new JSONParser().parse(new FileReader(projectDirectory + "/" + "bingo.properties"));
+            JSONObject jo = (JSONObject) obj;
+
+            gamesPerBooklet = Integer.parseInt(jo.get("games").toString());
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
 
         if(success){
             windowProject();
@@ -209,7 +237,7 @@ public class Main extends Application {
         tabPlayGame(tabPlay);
 
         // Setting Scene
-        Scene bingoScene = new Scene(tabPane, 750, 950);
+        Scene bingoScene = new Scene(tabPane, 750, 550);
         primaryStage.setScene(bingoScene);
         primaryStage.show();
     }
@@ -312,11 +340,11 @@ public class Main extends Application {
         // Generate and create numbers for # of cards to generate
         ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
         for(int i = 1; i < 100; i++){
-            genNumbers.add("x" + Integer.toString(i));
+            genNumbers.add(Integer.toString(i));
         }
         Text comboText = new Text("Games per Booklet:");
         ComboBox comboNumber = new ComboBox(genNumbers);
-        comboNumber.getSelectionModel().select("x1");
+        comboNumber.getSelectionModel().select(gamesPerBooklet);
         pagesPane.getChildren().add(comboText);
         pagesPane.getChildren().add(comboNumber);
         topPane.getChildren().add(pagesPane);
@@ -333,7 +361,7 @@ public class Main extends Application {
         buttonGetFiles.setMinHeight(30);
         dropVBox.getChildren().add(buttonGetFiles);
         // AddFiles Text
-        Text dropText = new Text("Or drop PDFs here");
+        Text dropText = new Text("Or drop PNGs here");
         dropVBox.getChildren().add(dropText);
         topPane.getChildren().add(dropVBox);
 
@@ -358,12 +386,7 @@ public class Main extends Application {
         this.previewTemplateFlowPane = previewFlowPane;
         rerenderTemplatePreviews();
 
-
-
         tab.setContent(mainLayout);
-
-
-
 
         // Listeners ----------------------------------------------------
         // DropBox DragOver Event
@@ -404,119 +427,15 @@ public class Main extends Application {
             }
         });
 
-    //OLDDDD-------------------------------------
-        /*
-
-
-        // Bottom panel
-        VBox bottomPane = new VBox();
-        bottomPane.setAlignment(Pos.CENTER);
-        // Template Panel
-        HBox templatePane = new HBox();
-        templatePane.setAlignment(Pos.CENTER);
-        templatePane.setSpacing(10);
-        templatePane.setPadding(new Insets(10, 10, 10, 10));
-        Button buttonSetTemp = new Button("No Template Specified");
-        Button buttonRemTemp = new Button("X");
-        templatePane.getChildren().add(buttonSetTemp);
-        bottomPane.getChildren().add(templatePane);
-        // Generate Panel
-
-        bottomPane.getChildren().add(pagesPane);
-
-        HBox bookPane = new HBox();
-        bookPane.setAlignment(Pos.CENTER);
-        bookPane.setSpacing(10);
-        bookPane.setPadding(new Insets(2, 10, 2, 10));
-        Text bookText = new Text("Booklets per PDF:");
-        ComboBox comboBook = new ComboBox(genNumbers);
-        comboBook.getSelectionModel().select("x1");
-        bookPane.getChildren().add(bookText);
-        bookPane.getChildren().add(comboBook);
-        bottomPane.getChildren().add(bookPane);
-
-        Button buttonGen = new Button("Generate");
-        buttonGen.setDisable(true);
-        bottomPane.getChildren().add(buttonGen);
-
-       mainLayout.setBottom(bottomPane);
-
-
-        // If there is a template on load
-        if(isThereATemplate) {
-            buttonSetTemp.setDisable(true);
-            buttonSetTemp.setText("Template Set");
-            templatePane.getChildren().add(buttonRemTemp);
-
-            buttonGen.setDisable(false);
-        }
-
-         // Generate Button OnAction
-        buttonGen.setOnAction(new EventHandler<ActionEvent>() {
+        //ComboNumbers onChanges
+        comboNumber.valueProperty().addListener(new ChangeListener() {
             @Override
-            public void handle(ActionEvent actionEvent) {
-                try {
-                    generatePDF(Integer.parseInt(comboNumber.getValue().toString().substring(1)), Integer.parseInt(comboBook.getValue().toString().substring(1)));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+                gamesPerBooklet = Integer.parseInt(newValue.toString());
+                rerenderTemplatePreviews();
+                saveToProperties();
             }
         });
-
-        // GetTemplate Button OnAction
-        buttonSetTemp.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                FileChooser fileChooser = new FileChooser();
-                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF files (*.pdf)", "*.pdf"));
-                File file = fileChooser.showOpenDialog(primaryStage);
-
-                if(file != null){
-                    templateCard = file;
-                    buttonSetTemp.setDisable(true);
-                    buttonSetTemp.setText("Template Set");
-                    templatePane.getChildren().add(buttonRemTemp);
-
-                    buttonGen.setDisable(false);
-
-                    File tempCardFile = new File(projectDirectory + "/" + "template.pdf");
-                    if(tempCardFile.exists()){ // If template already exists, rename it randomly
-                        String name = String.format("%s.%s", RandomStringUtils.randomAlphanumeric(8), "pdf");
-                        try {
-                            Files.copy(tempCardFile.toPath(), new File(projectDirectory + "/" + name).toPath());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                        // Remove template file
-                        tempCardFile.delete();
-                    }
-
-                    tempCardFile = new File(projectDirectory + "/" + "template.pdf");
-                    try {
-                        Files.copy(file.toPath(), tempCardFile.toPath());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                } else {
-                    buttonGen.setDisable(true);
-                }
-            }
-        });
-
-        buttonRemTemp.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                templatePane.getChildren().remove(buttonRemTemp);
-                buttonSetTemp.setDisable(false);
-                buttonSetTemp.setText("Template Not Specified");
-                buttonGen.setDisable(true);
-            }
-        });
-
-        */
-
     }
 
     public void tabGenerate(Tab tab) {
@@ -685,7 +604,7 @@ public class Main extends Application {
                             e.printStackTrace();
                         }
                     }
-                    rerenderPreviews();
+                    rerenderTemplatePreviews();
                 }
             }
             event.setDropCompleted(success);
@@ -718,7 +637,7 @@ public class Main extends Application {
                     imageView.setFitWidth(100);
                     hBox.getChildren().add(imageView);
 
-                    ComboBox comboBox = new ComboBox(options());
+                    ComboBox comboBox = new ComboBox(iconOptions());
 
                     if (fileList[i].length() == 6) { // That being '00.png' = 6
                         try {
@@ -753,6 +672,8 @@ public class Main extends Application {
      * Renders Templates in Card editor
      */
     public void rerenderTemplatePreviews() {
+        boolean redo = false;
+
         File templateDir = new File(projectDirectory + "/" + "templates");
         if(templateDir.exists()) {
             String[] fileList = templateDir.list();
@@ -761,6 +682,15 @@ public class Main extends Application {
             if (fileList != null) {
                 for (int i = 0; i < fileList.length; i++) {
                     final File currentFile = new File(templateDir.getAbsolutePath() + "/" + fileList[i]);
+                    String numName = currentFile.getName().substring(0, currentFile.getName().length() -4);
+
+                    if(numName.length() == 2){
+                        if(Integer.parseInt(numName) > gamesPerBooklet) {
+                            String newValue = RandomStringUtils.randomAlphanumeric(8);
+                            currentFile.renameTo(new File(templateDir.getAbsolutePath() + "/" + newValue + ".png"));
+                            redo = true;
+                        }
+                    }
 
                     HBox hBox = new HBox();
                     hBox.setStyle("-fx-border-style: solid inside; -fx-border-width: 1; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: black;");
@@ -774,13 +704,13 @@ public class Main extends Application {
                     imageView.setFitWidth(100);
                     hBox.getChildren().add(imageView);
 
-                    ComboBox comboBox = new ComboBox(options());
+                    ComboBox comboBox = new ComboBox(templateOptions());
 
                     if (fileList[i].length() == 6) { // That being '00.png' = 6
                         try {
                             comboBox.getSelectionModel().select(fileList[i].substring(0, 2));
                         } catch (Exception e) {
-                            warningPopup("TWO DIGIT LONG FILE NAME IS NOT VIABLE (1-99): " + fileList[i].substring(0,2) + " - rerenderPreview()");
+                            warningPopup("TWO DIGIT LONG FILE NAME IS NOT VIABLE (1-99): " + fileList[i].substring(0,2) + " - rerenderTemplatePreview()");
                         }
                     }
 
@@ -795,7 +725,7 @@ public class Main extends Application {
                             newValue = 0 + newValue.toString();
                         }
 
-                        currentFile.renameTo(new File(templateDir.getAbsolutePath() + "/" + newValue + ".pdf"));
+                        currentFile.renameTo(new File(templateDir.getAbsolutePath() + "/" + newValue + ".png"));
                         rerenderTemplatePreviews();
                     });
                 }
@@ -803,12 +733,15 @@ public class Main extends Application {
         } else {
             warningPopup("TEMPLATE DIRECTORY DOESNT EXIST - rerenderTemplatePreview()");
         }
+
+        if(redo) {
+            rerenderTemplatePreviews();
+        }
     }
 
     /**
      * Renders all possible numbers with a checkbox, to keep track of what has been called
      */
-    // TODO WIP
     public HBox renderPlayTracker() {
         // Main PlayBox
         HBox playBox = new HBox();
@@ -820,11 +753,13 @@ public class Main extends Application {
         File iconDir = new File(projectDirectory + "/" + "icons");
         String[] fileList = iconDir.list();
 
+        // Loops through B I N G O
         for (int i = 0; i < 5; i ++) {
             VBox vBox = new VBox();
             vBox.setAlignment(Pos.CENTER);
             vBox.setPadding(new Insets(0, 10, 0, 10));
 
+            // Looks through 1-15 of each letter
             for (int j = 1; j < 16; j++) {
                 HBox numBox = new HBox();
                 numBox.setAlignment(Pos.CENTER);
@@ -836,24 +771,39 @@ public class Main extends Application {
                 numBox.setSpacing(5);
                 numBox.setAlignment(Pos.CENTER);
 
-                Text textNumber = new Text(Integer.toString(j));
+                // Adds number
+                Text textNumber = new Text(Integer.toString(j + (i * 15)));
                 numBox.getChildren().add(textNumber);
 
-                Image image = new Image("file:" + iconDir.getAbsolutePath() + "/" + fileList[i]);
-                ImageView imageView = new ImageView(image);
-                imageView.setFitHeight(30);
-                imageView.setFitWidth(30);
-                numBox.getChildren().add(imageView);
+                String numberName = Integer.toString(j + (i * 15));
+                if(Integer.parseInt(numberName) < 10) {
+                    numberName = "0" + numberName;
+                }
 
+                File numFile = new File(iconDir.getAbsolutePath() + "/" + numberName + ".png");
 
+                // If icon file of number exists, use element, if not use a large text version of number
+                if(numFile.exists()) {
+                    Image image = new Image("file:" + numFile);
+                    ImageView imageView = new ImageView(image);
+                    imageView.setFitHeight(30);
+                    imageView.setFitWidth(30);
+                    numBox.getChildren().add(imageView);
+                } else {
+                    Text t = new Text(numberName);
+                    t.setStyle("-fx-font-size: 22; -fx-font-weight: bold");
+                    numBox.getChildren().add(t);
+                }
+
+                // Add checkbox
                 CheckBox checkNum = new CheckBox();
                 numBox.getChildren().add(checkNum);
-
                 vBox.getChildren().add(numBox);
             }
             playBox.getChildren().add(vBox);
         }
 
+        // Put into scrollpane
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setContent(playBox);
 
@@ -866,9 +816,9 @@ public class Main extends Application {
     }
 
     /**
-     * Generates available numbers
+     * Generates available icon numbers
      */
-    public ObservableList<String> options(){
+    public ObservableList<String> iconOptions(){
         ObservableList<String> options =  FXCollections.observableArrayList(
                 " "
         );
@@ -883,6 +833,33 @@ public class Main extends Application {
             }
 
             File currentFile = new File(projectDirectory + "/icons/" + currentNum + ".png");
+
+            if(!currentFile.exists()){
+                options.add(currentNum);
+            }
+        }
+
+        return options;
+    }
+
+    /**
+     * Generates available template numbers
+     */
+    public ObservableList<String> templateOptions(){
+        ObservableList<String> options =  FXCollections.observableArrayList(
+                " "
+        );
+
+        for(int i = 0; i < gamesPerBooklet + 1; i++){
+            String currentNum = Integer.toString(i);
+
+            if (i == 0){
+                currentNum = "Unlink";
+            } else if (i < 10) {
+                currentNum = "0" + Integer.toString(i);
+            }
+
+            File currentFile = new File(projectDirectory + "/templates/" + currentNum + ".png");
 
             if(!currentFile.exists()){
                 options.add(currentNum);
@@ -1072,5 +1049,18 @@ public class Main extends Application {
                 errorStage.hide();
             }
         });
+    }
+
+    public void saveToProperties() {
+        JSONObject obj = new JSONObject();
+        obj.put("games", gamesPerBooklet);
+
+        try {
+            FileWriter fileProps = new FileWriter(projectDirectory + "/" + "bingo.properties");
+            fileProps.write(obj.toJSONString());
+            fileProps.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
