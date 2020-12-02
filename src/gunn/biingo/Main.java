@@ -18,6 +18,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
@@ -41,6 +42,7 @@ import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.Set;
 
 public class Main extends Application {
     Stage primaryStage = null;
@@ -82,51 +84,57 @@ public class Main extends Application {
      * Scene: Main Menu
      */
     public void windowMainMenu() {
-        // Create 'Load' and 'New' Buttons
+        // Set scene
+        BorderPane borderLayout = new BorderPane();
+        borderLayout.setStyle("-fx-background-color: #e65650");
+        Scene mainMenuScene = new Scene(borderLayout, 500, 300);
+        String css = this.getClass().getResource("/assets/style.css").toExternalForm();
+        mainMenuScene.getStylesheets().add(css);
+
+        // Bottom Panes
+        VBox bottomBox = new VBox();
+        //  Menu Buttons
+        HBox menuHBox = new HBox();
+        menuHBox.setAlignment(Pos.BOTTOM_CENTER);
+        menuHBox.setPadding(new Insets(15, 12, 15, 12));
+        menuHBox.setSpacing(10);
+        // Elements
         Button buttonLoad = new Button("Load");
+        buttonLoad.getStyleClass().add("record-sales");
+        buttonLoad.text
         buttonLoad.setMinWidth(100);
         Button buttonNew = new Button("New");
         buttonNew.setMinWidth(100);
+        buttonNew.getStyleClass().add("record-sales");
+        menuHBox.getChildren().add(buttonLoad);
+        menuHBox.getChildren().add(buttonNew);
+        //Copyrights
+        HBox copyBox = new HBox();
+        copyBox.setStyle("-fx-background-color: #ed827e");
+        copyBox.setPadding(new Insets(5,5,5,5));
+        copyBox.setAlignment(Pos.CENTER_RIGHT);
+        // Elements
+        Text copy = new Text("V1.1.0 - Copyright Brady Gunn 2020. All rights reserved");
+        copy.setTextAlignment(TextAlignment.RIGHT);
+        copyBox.getChildren().add(copy);
+        // Add to Bottom Box
+        bottomBox.getChildren().add(menuHBox);
+        bottomBox.getChildren().add(copyBox);
+        borderLayout.setBottom(bottomBox);
 
-        // Create BorderPane layout and put buttons in an HBox at the bottom
-        BorderPane borderLayout = new BorderPane();
-
+        // Center
         Image image = new Image(getClass().getResource("/assets/logo.png").toExternalForm());
         ImageView imageView = new ImageView(image);
         imageView.setFitHeight(200);
         imageView.setFitWidth(200);
-
         borderLayout.setCenter(imageView);
-
-
-
-        VBox bottomBox = new VBox();
-        //Buttons for Bottom
-        HBox menuHBox = new HBox();
-        menuHBox.setAlignment(Pos.BOTTOM_CENTER);
-        menuHBox.getChildren().add(buttonLoad);
-        menuHBox.getChildren().add(buttonNew);
-        menuHBox.setPadding(new Insets(15, 12, 15, 12));
-        menuHBox.setSpacing(10);
-        bottomBox.getChildren().add(menuHBox);
-        //Copyrights
-        HBox copyBox = new HBox();
-        copyBox.setPadding(new Insets(5,5,5,5));
-        copyBox.setAlignment(Pos.CENTER_RIGHT);
-        Text copy = new Text("V1.1.0 - Copyright Brady Gunn 2020. All rights reserved");
-        copy.setTextAlignment(TextAlignment.RIGHT);
-        copyBox.getChildren().add(copy);
-        bottomBox.getChildren().add(copyBox);
-        //Set to Bottom
-        borderLayout.setBottom(bottomBox);
-
-        // Set scene
-        Scene mainMenuScene = new Scene(borderLayout, 500, 300);
 
         // Set Scene
         primaryStage.setScene(mainMenuScene);
+        primaryStage.setResizable(false);
         primaryStage.show();
 
+        // Listeners
         buttonLoad.setOnAction(value -> {
             DirectoryChooser dirChooser = new DirectoryChooser();
 
@@ -1014,9 +1022,9 @@ public class Main extends Application {
     /**
      * Generate id for card
      */
-    public String getNewBookID() {
-        String bookID = Integer.toString(nextId);
-        nextId++;
+    public String getNewBookID(int next) {
+        String bookID = Integer.toString(next);
+        next++;
 
         switch(bookID.length()){
             case 1:
@@ -1062,6 +1070,7 @@ public class Main extends Application {
         final File[] fileTemplates = new File[games + 1];
 
         JSONObject tempDatabase = (JSONObject) cardDatabase.clone();
+        int nextCardID = nextId;
 
         //Gathering Templates
         // Check if template exists, if not use default [01]
@@ -1098,7 +1107,8 @@ public class Main extends Application {
                 doc = new PDDocument();
             }
 
-            bookId = getNewBookID();
+            bookId = getNewBookID(nextCardID);
+            nextCardID++;
 
             // Go through each page
             for (n = 1; n < games + 1; n++) { // GAMES PER BOOKLET
@@ -1193,12 +1203,14 @@ public class Main extends Application {
                 doc.save(saveDir + "/Cards - " + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
                 doc.close();
                 cardDatabase = (JSONObject) tempDatabase.clone();
+                nextId = nextCardID;
             }
         }
         if(!dividePages) {
             doc.save(saveDir + "/Cards - " + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
             doc.close();
             cardDatabase = (JSONObject) tempDatabase.clone();
+            nextId = nextCardID;
         }
         return null;
     }
@@ -1351,15 +1363,44 @@ public class Main extends Application {
 
         Stage stage = new Stage();
         stage.setTitle("Card Database");
-        BorderPane mainPane = new BorderPane();
+        HBox mainPane = new HBox();
 
+        // List Pane
+        VBox listPane = new VBox();
+        listPane.setAlignment(Pos.CENTER);
+        listPane.setSpacing(10);
+        listPane.setPadding(new Insets(10, 10, 10, 10));
+        listPane.setStyle("-fx-background-color: #57595c");
+        // Elements
+        Text textTitle = new Text("Bingo Cards");
+        textTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-fill: white");
+        listPane.getChildren().add(textTitle);
+        // Card List Element
+        ListView<String> cardList = new ListView<String>();
+        ObservableList<String> cardItems = FXCollections.observableArrayList();
+        for (Object o : cardDatabase.keySet()) {
+            cardItems.add((String) o);
+        }
+        FXCollections.sort(cardItems);
+        cardList.setItems(cardItems);
+        listPane.getChildren().add(cardList);
+        // SearchBar
+        TextField searchField = new TextField();
+        listPane.getChildren().add(searchField);
+        // Buttons
+        Button buttonDelete = new Button("Clear Cards");
+        listPane.getChildren().add(buttonDelete);
+        mainPane.getChildren().add(listPane);
+
+
+        // Card pane
         StackPane stackPane = new StackPane();
         Image card = new Image("file:" + templateDir + "/" + "01.png");
         ImageView cardView = new ImageView(card);
         cardView.setFitHeight(600);
         cardView.setFitWidth(500);
         stackPane.getChildren().add(cardView);
-
+        // Render Icons
         for(int i = 0; i < 5; i++) {
             for(int j = 0; j < 5; j++) {
                 Image icon = new Image("file:" + iconDir + "/" + "01.png");
@@ -1371,11 +1412,20 @@ public class Main extends Application {
                 stackPane.getChildren().add(iconView);
             }
         }
+        mainPane.getChildren().add(stackPane);
 
-        mainPane.setCenter(stackPane);
-        Scene scene = new Scene(mainPane, 500, 600);
+        Scene scene = new Scene(mainPane, 700, 600);
         stage.setScene(scene);
+        stage.setResizable(false);
         stage.show();
+
+        // Listeners
+        cardList.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                System.out.println("CLICKED: " + cardList.getSelectionModel().getSelectedItem());
+            }
+        });
     }
 
     /**
