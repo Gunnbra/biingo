@@ -179,7 +179,7 @@ public class Main extends Application {
             e.printStackTrace();
         }
 
-        File bingoDatabaseFile = new File(projectDir + "/" + "cardDatabase.json");
+        File bingoDatabaseFile = new File(projectDir + "/" + "bingo.database");
         try {
             bingoDatabaseFile.createNewFile();
         } catch (IOException e) {
@@ -242,12 +242,10 @@ public class Main extends Application {
         }
 
         // Get Database
-        Object obj = null;
         try {
-            obj = new JSONParser().parse(new FileReader(projectDirectory + "/" + "cardDatabase.json"));
+            Object obj = new JSONParser().parse(new FileReader(projectDirectory + "/" + "bingo.database"));
             JSONObject jo = (JSONObject) obj;
             if(jo != null) {
-                System.out.println("DDDDD");
                 cardDatabase = jo;
             }
         } catch (IOException | ParseException e) {
@@ -633,6 +631,16 @@ public class Main extends Application {
         mainLayout.setBottom(optionBox);
 
         tab.setContent(mainLayout);
+
+        // Listeners
+
+        //Button View Cards
+        buttonViewCards.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                databasePopup();
+            }
+        });
     }
 
     // ------ LISTENERS ------
@@ -1196,7 +1204,12 @@ public class Main extends Application {
     }
 
     // ------ POPUP ------
-    public void warningPopup(String warning){
+
+    /**
+     * Popup window for errors
+     * @param warning
+     */
+    public void warningPopup(String warning) {
         BorderPane layout = new BorderPane();
         VBox vbox = new VBox();
         vbox.setAlignment(Pos.CENTER);
@@ -1230,7 +1243,7 @@ public class Main extends Application {
     /**
      * Popup window when generating BINGO Cards
      */
-    public void generatePopup(){
+    public void generatePopup() {
         buttonGenerate.setDisable(true);
 
         Stage genStage = new Stage();
@@ -1330,6 +1343,42 @@ public class Main extends Application {
     }
 
     /**
+     * Popup window for card database
+     */
+    public void databasePopup() {
+        File templateDir = new File(projectDirectory + "/templates");
+        File iconDir = new File(projectDirectory + "/icons");
+
+        Stage stage = new Stage();
+        stage.setTitle("Card Database");
+        BorderPane mainPane = new BorderPane();
+
+        StackPane stackPane = new StackPane();
+        Image card = new Image("file:" + templateDir + "/" + "01.png");
+        ImageView cardView = new ImageView(card);
+        cardView.setFitHeight(600);
+        cardView.setFitWidth(500);
+        stackPane.getChildren().add(cardView);
+
+        for(int i = 0; i < 5; i++) {
+            for(int j = 0; j < 5; j++) {
+                Image icon = new Image("file:" + iconDir + "/" + "01.png");
+                ImageView iconView = new ImageView(icon);
+                iconView.setFitWidth(90);
+                iconView.setFitHeight(90);
+                iconView.setTranslateX(-175 + (j * 87));
+                iconView.setTranslateY(210 - (i * 80));
+                stackPane.getChildren().add(iconView);
+            }
+        }
+
+        mainPane.setCenter(stackPane);
+        Scene scene = new Scene(mainPane, 500, 600);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    /**
      * Save properties to properties file
      */
     public void saveToProperties() {
@@ -1355,7 +1404,7 @@ public class Main extends Application {
 
     public void saveCardDatabase(){
         try {
-            FileWriter fileProps = new FileWriter(projectDirectory + "/" + "cardDatabase.json");
+            FileWriter fileProps = new FileWriter(projectDirectory + "/" + "bingo.database");
             fileProps.write(cardDatabase.toJSONString());
             fileProps.flush();
         } catch (IOException e) {
