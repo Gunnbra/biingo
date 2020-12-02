@@ -25,6 +25,7 @@ import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -52,11 +53,14 @@ public class Main extends Application {
     boolean pageNumbers = false;
     boolean dividePages = false;
 
-    boolean generateComplete = false;
+    VBox warnBox;
+
+    Button buttonGenerate;
     Text bookText;
     Text pageText;
     Text timeText;
     ProgressBar progressBar;
+    Thread thread;
 
 
     public static void main(String[] args) throws Exception {
@@ -239,6 +243,9 @@ public class Main extends Application {
      * Scene: Card editor
      */
     public void windowProject() {
+        buttonGenerate = new Button("Generate");
+        warnBox = new VBox();
+
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         Tab tabNumEditor = new Tab("Card Editor");
@@ -383,7 +390,14 @@ public class Main extends Application {
         // AddFiles Text
         Text dropText = new Text("Or drop PNGs here");
         dropVBox.getChildren().add(dropText);
+        //Warning Text
+        warnBox.setAlignment(Pos.CENTER);
+        Text warnText = new Text("Set a template to 01!");
+        warnText.setStyle("-fx-fill: red; -fx-font-size: 20px; -fx-font-weight: bold");
+        warnBox.getChildren().add(warnText);
+        // Set Elements to top pane
         topPane.getChildren().add(dropVBox);
+        topPane.getChildren().add(warnBox);
 
         // SET TOP
         mainLayout.setTop(topPane);
@@ -495,8 +509,6 @@ public class Main extends Application {
         checkDivide.selectedProperty().set(dividePages);
         checkBox.getChildren().add(checkDivide);
 
-        // Generate button
-        Button buttonGenerate = new Button("Generate");
         // Add all elements to main layout and send to Tab
         vbox.getChildren().add(comboBox);
         vbox.getChildren().add(checkBox);
@@ -740,6 +752,16 @@ public class Main extends Application {
 
             this.previewTemplateFlowPane.getChildren().clear(); // Removes all so it can be re rendered
             if (fileList != null) {
+
+                final File defaultTemplate = new File(templateDir.getAbsolutePath() + "/01.png");
+                if(defaultTemplate.exists()) {
+                    buttonGenerate.setDisable(false);
+                    warnBox.setVisible(false);
+                } else {
+                    buttonGenerate.setDisable(true);
+                    warnBox.setVisible(true);
+                }
+
                 for (int i = 0; i < fileList.length; i++) {
                     final File currentFile = new File(templateDir.getAbsolutePath() + "/" + fileList[i]);
                     String numName = currentFile.getName().substring(0, currentFile.getName().length() -4);
@@ -1056,7 +1078,8 @@ public class Main extends Application {
                 // Iterates through each square, places each icon
                 for (i = 0; i < 5; i++) {
                     for (j = 0; j < 5; j++) {
-                        if (i != 2 && j != 2) {  // Don't render, Free Space
+                        if (i == 2 && j == 2) {  // Don't render, Free Space
+                        } else {
                             currentNum = Integer.toString(cardNumbers[i][j]);
                             if (cardNumbers[i][j] < 10) {
                                 currentNum = "0" + cardNumbers[i][j];
@@ -1154,7 +1177,12 @@ public class Main extends Application {
         });
     }
 
+    /**
+     * Popup window when generating BINGO Cards
+     */
     public void generatePopup(){
+        buttonGenerate.setDisable(true);
+
         Stage genStage = new Stage();
         genStage.setTitle("Generating...");
         genStage.setResizable(false);
@@ -1165,21 +1193,24 @@ public class Main extends Application {
         Text messageText = new Text("This make take a couple minutes...");
         progressBar = new ProgressBar(0);
         progressBar.setStyle("-fx-pref-width: 200px");
-        timeText = new Text("Approximately " + "10 minutes and " + "20 seconds");
+        timeText = new Text("Approximately " + "0 minutes and " + "0 seconds");
         bookText = new Text("Booklet " + "0" + " of " + printedBooklets);
         bookText.setStyle("-fx-font-weight: bold; -fx-fill: green");
         pageText = new Text("Page " + "0" + " of " + gamesPerBooklet);
         pageText.setStyle("-fx-font-weight: bold; -fx-fill: green");
 
+        // Top
         VBox topBox = new VBox();
         topBox.setPadding(new Insets(10, 0, 0, 0));
-        VBox messageBox = new VBox();
         topBox.setAlignment(Pos.CENTER);
         topBox.setSpacing(5);
-        messageBox.setAlignment(Pos.CENTER);
-        messageBox.setSpacing(5);
         topBox.getChildren().add(titleText);
         topBox.getChildren().add(messageText);
+
+        // Center
+        VBox messageBox = new VBox();
+        messageBox.setAlignment(Pos.CENTER);
+        messageBox.setSpacing(5);
         messageBox.getChildren().add(timeText);
         messageBox.getChildren().add(progressBar);
         messageBox.getChildren().add(bookText);
@@ -1187,39 +1218,59 @@ public class Main extends Application {
         mainPane.setTop(topBox);
         mainPane.setCenter(messageBox);
 
-        Scene genScene = new Scene(mainPane, 250, 140);
+        // Bottom
+        HBox bottomBox = new HBox();
+        bottomBox.setAlignment(Pos.CENTER);
+        bottomBox.setPadding(new Insets(10, 10, 10, 10));
+        Button cancelButton = new Button("Cancel");
+        bottomBox.getChildren().add(cancelButton);
+        mainPane.setBottom(bottomBox);
+
+        Scene genScene = new Scene(mainPane, 250, 200);
         genStage.setScene(genScene);
         genStage.show();
 
+        // New thread that generates PDFs
+        thread = null;
         try {
             Task<Void> executeAppTask = new Task<Void>() {
                 @Override
                 protected Void call() throws Exception {
                     Process p = Runtime.getRuntime().exec(generatePDF());
                     p.waitFor();
-
                     return null;
                 }
             };
 
-            executeAppTask.setOnSucceeded(e -> {
-                // code to execute when task completes normally
-            });
-
             executeAppTask.setOnFailed(e -> {
-                Throwable problem = executeAppTask.getException();
-                // code to execute if task throws exception
+                genStage.close();
+                buttonGenerate.setDisable(false);
             });
 
-            executeAppTask.setOnCancelled(e -> {
-                // task was cancelled
-            });
-
-            Thread thread = new Thread(executeAppTask);
+            thread = new Thread(executeAppTask);
             thread.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        // Listeners
+        // Cancel Button
+        cancelButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                thread.stop();
+                genStage.close();
+                buttonGenerate.setDisable(false);
+            }
+        });
+        // If Stage is closed
+        genStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent event) {
+                thread.stop();
+                buttonGenerate.setDisable(false);
+            }
+        });
     }
 
     /**
@@ -1244,14 +1295,15 @@ public class Main extends Application {
     public void updateProgressBar(int b, int n, int books, int games) {
         bookText.setText("Booklet " + b + " of " + books);
         pageText.setText("Page " + n + " of " + games);
-        //TODO fix timer and progress bar
-        int rawTime = (games * books) - n;
+
+        double onNum = (((double)n + (((double)b-1) * (double)games)));
+        double total = ((double)games * (double)books);
+
+        int rawTime = (int) (total - onNum) / 2;
         int minTime = rawTime / 60;
         int secTime = rawTime % 60;
         timeText.setText("Approximately " + minTime + " minutes and " + secTime + " seconds");
-        System.out.println((((double)n + (((double)b-1) * (double)games))));
-        System.out.println((double)games * (double)books);
-        System.out.println(((((double)n + (((double)b-1) * (double)games))) / (double)games * (double)books)/100);
-        progressBar.setProgress(((((double)n + (((double)b-1) * (double)games))) / (double)games * (double)books)/100);
+
+        progressBar.setProgress(onNum / total);
     }
 }
