@@ -39,6 +39,7 @@ import org.json.simple.parser.ParseException;
 import java.io.*;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
+import java.util.Iterator;
 import java.util.Random;
 
 public class Main extends Application {
@@ -50,8 +51,10 @@ public class Main extends Application {
 
     int gamesPerBooklet = 1;
     int printedBooklets = 1;
+    int nextId = 0;
     boolean pageNumbers = false;
     boolean dividePages = false;
+    JSONObject cardDatabase = new JSONObject();
 
     VBox warnBox;
 
@@ -61,7 +64,6 @@ public class Main extends Application {
     Text timeText;
     ProgressBar progressBar;
     Thread thread;
-
 
     public static void main(String[] args) throws Exception {
         launch(args);
@@ -177,6 +179,13 @@ public class Main extends Application {
             e.printStackTrace();
         }
 
+        File bingoDatabaseFile = new File(projectDir + "/" + "cardDatabase.json");
+        try {
+            bingoDatabaseFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         // Project File
         file.mkdir();
 
@@ -224,11 +233,24 @@ public class Main extends Application {
             if(jo.get("divide") != null) {
                 dividePages = jo.get("divide").toString().equals("true");
             }
-        } catch (FileNotFoundException e) {
+
+            if(jo.get("nextid") != null) {
+                nextId = Integer.parseInt(jo.get("nextid").toString());
+            }
+        } catch (IOException | ParseException e) {
             e.printStackTrace();
-        } catch (ParseException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        }
+
+        // Get Database
+        Object obj = null;
+        try {
+            obj = new JSONParser().parse(new FileReader(projectDirectory + "/" + "cardDatabase.json"));
+            JSONObject jo = (JSONObject) obj;
+            if(jo != null) {
+                System.out.println("DDDDD");
+                cardDatabase = jo;
+            }
+        } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
 
@@ -269,6 +291,7 @@ public class Main extends Application {
         primaryStage.show();
     }
 
+    // ------ TABS ------
     public void tabCardEditor(Tab tab) {
         // Scene Creations
         BorderPane mainLayout = new BorderPane();
@@ -612,6 +635,7 @@ public class Main extends Application {
         tab.setContent(mainLayout);
     }
 
+    // ------ LISTENERS ------
     /**
      * Event Listener: On File Drop
      */
@@ -684,6 +708,7 @@ public class Main extends Application {
         }
     };
 
+    // ------ RENDER ------
     /**
      * Renders icons in Card editor
      */
@@ -897,6 +922,7 @@ public class Main extends Application {
         return calledBox;
     }
 
+    // ------ GENERATION ------
     /**
      * Generates available icon numbers
      */
@@ -954,58 +980,52 @@ public class Main extends Application {
     /**
      * Generates a 5x5 grid of random numbers, following the BINGO rules per column
      */
-    public static int[][] randomizeCard() {
-        int[][] card = new int[5][5];
+    public static JSONObject randomizeCard() {
+        JSONObject card = new JSONObject();
         Random rand = new Random();
 
-        for (int i = 0; i < card.length; i++) {
-            for (int j = 0; j < card[i].length; j++) {
+        JSONObject letter;
+        for (int i = 0; i < 5; i++) {
+            letter = new JSONObject();
+            for (int j = 0; j < 5; j++) {
                 int nextInt;
-                while (card[i][j] == 0) {
+                while (letter.get(j) == null) {
                     nextInt = rand.nextInt(15) + 1 + (15 * i);
 
-                    if (!contains(card[i], nextInt)) {
-                        card[i][j] = nextInt;
+                    if (!letter.containsValue(nextInt)) {
+                        letter.put(j, nextInt);
                     }
                 }
+                card.put(i, letter);
             }
         }
+
         return card;
     }
 
     /**
-     * Outputs Bingo Card in Debug
+     * Generate id for card
      */
-    public static void outputCard(int[][] array) {
-        String[][] strArray = new String[5][5];
-        String[] letterArray = {"B", "I", "N", "G", "O"};
+    public String getNewBookID() {
+        String bookID = Integer.toString(nextId);
+        nextId++;
 
-        for (int i = 0; i < array.length; i++) {
-            for (int j = 0; j < array[i].length; j++) {
-                if (Integer.toString(array[i][j]).length() == 1) {
-                    strArray[i][j] = "0" + array[i][j];
-                } else {
-                    strArray[i][j] = Integer.toString(array[i][j]);
-                }
-            }
-            System.out.println(letterArray[i] + ": " + "[" + strArray[i][0] + "]" + "[" + strArray[i][1] + "]" + "[" + strArray[i][2] + "]" + "[" + strArray[i][3] + "]" + "[" + strArray[i][4] + "]");
-        }
-    }
-
-    /**
-     * Checks if an array has a specified integer value
-     */
-    public static boolean contains(final int[] array, final int val) {
-        boolean result = false;
-
-        for (int i : array) {
-            if (i == val) {
-                result = true;
+        switch(bookID.length()){
+            case 1:
+                bookID = "0000" + bookID;
                 break;
-            }
+            case 2:
+                bookID = "000" + bookID;
+                break;
+            case 3:
+                bookID = "00" + bookID;
+                break;
+            case 4:
+                bookID = "0" + bookID;
+                break;
         }
 
-        return result;
+        return bookID;
     }
 
     public String generatePDF() throws Exception {
@@ -1033,6 +1053,8 @@ public class Main extends Application {
         final boolean pageNums = pageNumbers;
         final File[] fileTemplates = new File[games + 1];
 
+        JSONObject tempDatabase = (JSONObject) cardDatabase.clone();
+
         //Gathering Templates
         // Check if template exists, if not use default [01]
         File templateFile;
@@ -1054,14 +1076,34 @@ public class Main extends Application {
             }
         }
 
-        // Create new page based on # of cards specified
-        for (b = 1; b < books + 1; b++) {
+        doc = null;
+        if(! dividePages) {
             doc = new PDDocument();
+        }
+
+        String bookId;
+        String finalId;
+
+        // Create new page based on # of cards specified
+        for (b = 1; b < books + 1; b++) { // BOOKLETS PRINTED
+            if(dividePages) {
+                doc = new PDDocument();
+            }
+
+            bookId = getNewBookID();
 
             // Go through each page
-            for (n = 1; n < games + 1; n++) {
+            for (n = 1; n < games + 1; n++) { // GAMES PER BOOKLET
                 // Create array of card #'s
-                int[][] cardNumbers = randomizeCard();
+                JSONObject cardObj = randomizeCard();
+
+                // Save card to database
+                if(n < 10){
+                    finalId = bookId + "0" + n;
+                } else {
+                    finalId = bookId + n;
+                }
+                addCardToDatabase(tempDatabase, cardObj, finalId);
 
                 // Create new page based on template
                 page = new PDPage();
@@ -1078,11 +1120,11 @@ public class Main extends Application {
                 // Iterates through each square, places each icon
                 for (i = 0; i < 5; i++) {
                     for (j = 0; j < 5; j++) {
-                        if (i == 2 && j == 2) {  // Don't render, Free Space
-                        } else {
-                            currentNum = Integer.toString(cardNumbers[i][j]);
-                            if (cardNumbers[i][j] < 10) {
-                                currentNum = "0" + cardNumbers[i][j];
+                        if (i != 2 || j != 2) {
+                            currentNum = (((JSONObject) cardObj.get(i)).get(j)).toString();
+
+                            if (Integer.parseInt(currentNum) < 10) {
+                                currentNum = "0" + currentNum;
                             }
 
                             path = iconDir + "/" + currentNum + ".png";
@@ -1098,6 +1140,7 @@ public class Main extends Application {
                                 contents.showText(currentNum);
                                 contents.endText();
                             }
+                        } else {  // Don't render, Free Space
                         }
 
                         // Needs to vary movement every 2nd square
@@ -1138,14 +1181,21 @@ public class Main extends Application {
 
                 updateProgressBar(b, n, books, games);
             }
-
-            // TODO ID
+            if(dividePages) {
+                doc.save(saveDir + "/Cards - " + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
+                doc.close();
+                cardDatabase = (JSONObject) tempDatabase.clone();
+            }
+        }
+        if(!dividePages) {
             doc.save(saveDir + "/Cards - " + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
             doc.close();
+            cardDatabase = (JSONObject) tempDatabase.clone();
         }
         return null;
     }
 
+    // ------ POPUP ------
     public void warningPopup(String warning){
         BorderPane layout = new BorderPane();
         VBox vbox = new VBox();
@@ -1245,6 +1295,8 @@ public class Main extends Application {
             executeAppTask.setOnFailed(e -> {
                 genStage.close();
                 buttonGenerate.setDisable(false);
+                saveCardDatabase();
+                saveToProperties();
             });
 
             thread = new Thread(executeAppTask);
@@ -1261,6 +1313,8 @@ public class Main extends Application {
                 thread.stop();
                 genStage.close();
                 buttonGenerate.setDisable(false);
+                saveCardDatabase();
+                saveToProperties();
             }
         });
         // If Stage is closed
@@ -1269,6 +1323,8 @@ public class Main extends Application {
             public void handle(WindowEvent event) {
                 thread.stop();
                 buttonGenerate.setDisable(false);
+                saveCardDatabase();
+                saveToProperties();
             }
         });
     }
@@ -1282,10 +1338,25 @@ public class Main extends Application {
         obj.put("print", printedBooklets);
         obj.put("pageNum", pageNumbers);
         obj.put("divide", dividePages);
+        obj.put("nextid", nextId);
 
         try {
             FileWriter fileProps = new FileWriter(projectDirectory + "/" + "bingo.properties");
             fileProps.write(obj.toJSONString());
+            fileProps.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void addCardToDatabase(JSONObject tempDatabase, JSONObject card, String id) {
+        tempDatabase.put(id, card.toString());
+    }
+
+    public void saveCardDatabase(){
+        try {
+            FileWriter fileProps = new FileWriter(projectDirectory + "/" + "cardDatabase.json");
+            fileProps.write(cardDatabase.toJSONString());
             fileProps.flush();
         } catch (IOException e) {
             e.printStackTrace();
