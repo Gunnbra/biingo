@@ -5,6 +5,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
@@ -18,10 +19,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
@@ -39,17 +37,27 @@ import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.text.DecimalFormat;
 import java.util.Random;
 
 public class Main extends Application {
     Stage primaryStage = null;
     File projectDirectory = null;
-    boolean allNumbers = true;
 
     FlowPane previewFlowPane = null;
     FlowPane previewTemplateFlowPane = null;
 
     int gamesPerBooklet = 1;
+    int printedBooklets = 1;
+    boolean pageNumbers = false;
+    boolean dividePages = false;
+
+    boolean generateComplete = false;
+    Text bookText;
+    Text pageText;
+    Text timeText;
+    ProgressBar progressBar;
+
 
     public static void main(String[] args) throws Exception {
         launch(args);
@@ -197,7 +205,21 @@ public class Main extends Application {
             Object obj = new JSONParser().parse(new FileReader(projectDirectory + "/" + "bingo.properties"));
             JSONObject jo = (JSONObject) obj;
 
-            gamesPerBooklet = Integer.parseInt(jo.get("games").toString());
+            if(jo.get("games") != null) {
+                gamesPerBooklet = Integer.parseInt(jo.get("games").toString());
+            }
+
+            if(jo.get("print") != null) {
+                printedBooklets = Integer.parseInt(jo.get("print").toString());
+            }
+
+            if(jo.get("pageNum") != null) {
+                pageNumbers = jo.get("pageNum").toString().equals("true");
+            }
+
+            if(jo.get("divide") != null) {
+                dividePages = jo.get("divide").toString().equals("true");
+            }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (ParseException e) {
@@ -205,8 +227,6 @@ public class Main extends Application {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
 
         if(success){
             windowProject();
@@ -454,22 +474,26 @@ public class Main extends Application {
         // Generate 100 numbers
         ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
         for(int i = 1; i < 100; i++){
-            genNumbers.add("x" + Integer.toString(i));
+            genNumbers.add(Integer.toString(i));
         }
         Text comboText = new Text("Booklets Printed:");
         ComboBox comboNumber = new ComboBox(genNumbers);
-        comboNumber.getSelectionModel().select("x1");
+        comboNumber.getSelectionModel().select(printedBooklets);
         comboBox.getChildren().add(comboText);
         comboBox.getChildren().add(comboNumber);
 
         //Checkboxes
-        HBox checkBox = new HBox();
+        VBox checkBox = new VBox();
         checkBox.setAlignment(Pos.CENTER);
         checkBox.setSpacing(10);
         checkBox.setPadding(new Insets(2, 10, 2, 10));
         // Elements
         CheckBox checkPageNum = new CheckBox("Page Numbers");
+        checkPageNum.selectedProperty().set(pageNumbers);
         checkBox.getChildren().add(checkPageNum);
+        CheckBox checkDivide = new CheckBox("Divide Booklets");
+        checkDivide.selectedProperty().set(dividePages);
+        checkBox.getChildren().add(checkDivide);
 
         // Generate button
         Button buttonGenerate = new Button("Generate");
@@ -479,6 +503,42 @@ public class Main extends Application {
         vbox.getChildren().add(buttonGenerate);
         mainLayout.setCenter(vbox);
         tab.setContent(mainLayout);
+
+        // Listeners
+        //ComboNumbers onChanges
+        comboNumber.valueProperty().addListener(new ChangeListener() {
+            @Override
+            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+                printedBooklets = Integer.parseInt(newValue.toString());
+                saveToProperties();
+            }
+        });
+
+        //CheckPageNum Listener
+        checkPageNum.selectedProperty().addListener(new ChangeListener<Boolean>() {
+            @Override
+            public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+                pageNumbers = newValue;
+                saveToProperties();
+            }
+        });
+
+        //CheckDivide Listener
+        checkDivide.selectedProperty().addListener(new ChangeListener<Boolean>() {
+            @Override
+            public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+                dividePages = newValue;
+                saveToProperties();
+            }
+        });
+
+        // Generate Button
+        buttonGenerate.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                generatePopup();
+            }
+        });
     }
 
     public void tabPlayGame(Tab tab) {
@@ -926,52 +986,89 @@ public class Main extends Application {
         return result;
     }
 
-    public void generatePDF(int numOfCards, int numOfBooks) throws Exception {
-        String templateCard = projectDirectory + "/templates/01.png"; // TODO TEMPORARY
+    public String generatePDF() throws Exception {
+        final File templateDirectory = new File(projectDirectory + "/templates");
+        final File iconDir = new File(projectDirectory + "/icons");
+        final File saveDir = projectDirectory.getParentFile();
 
-        // Create new PDF
-        PDDocument doc = new PDDocument();
+        // Variables
+        PDDocument doc;
+        PDPage page;
+        PDPageContentStream contents;
+        PDImageXObject template;
+        String currentNum;
+        String path;
+        PDImageXObject icon;
+        int iAdder;
+        int jAdder;
+        int b;
+        int n;
+        int i;
+        int j;
+
+        final int books = printedBooklets;
+        final int games = gamesPerBooklet;
+        final boolean pageNums = pageNumbers;
+        final File[] fileTemplates = new File[games + 1];
+
+        //Gathering Templates
+        // Check if template exists, if not use default [01]
+        File templateFile;
+        String numFileName;
+        for (int t = 1; t < games + 1; t++) {
+            // Num File Name
+            if (t < 10) {
+                numFileName = "0" + t + ".png";
+            } else {
+                numFileName = t + ".png";
+            }
+
+            templateFile = new File(templateDirectory + "/" + numFileName);
+
+            if (templateFile.exists()) {
+                fileTemplates[t] = templateFile;
+            } else {
+                fileTemplates[t] = new File(templateDirectory + "/01.png");
+            }
+        }
 
         // Create new page based on # of cards specified
-        for(int b = 0; b < numOfBooks; b++) {
-            for (int n = 0; n < numOfCards; n++) {
+        for (b = 1; b < books + 1; b++) {
+            doc = new PDDocument();
+
+            // Go through each page
+            for (n = 1; n < games + 1; n++) {
                 // Create array of card #'s
                 int[][] cardNumbers = randomizeCard();
 
                 // Create new page based on template
-                PDPage page = new PDPage();
-                PDPageContentStream contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
+                page = new PDPage();
+                contents = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, false, true);
 
-                // Draw Template TODO
-                PDImageXObject template = PDImageXObject.createFromFile(templateCard, doc);
+                // Draw Template
+                template = PDImageXObject.createFromFile(fileTemplates[n].getAbsolutePath(), doc);
                 contents.drawImage(template, 0, 0, page.getCropBox().getWidth(), page.getCropBox().getHeight());
 
                 // Draws Icon
-                File iconDir = new File(projectDirectory + "/icons/");
-                int iAdder = 0;
-                int jAdder = 0;
+                iAdder = 0;
+                jAdder = 0;
 
                 // Iterates through each square, places each icon
-                for (int i = 0; i < 5; i++) {
-                    for (int j = 0; j < 5; j++) {
-                        if (i == 2 && j == 2) {
-                            // Don't render, Free Space
-                        } else {
-                            String currentNum = Integer.toString(cardNumbers[i][j]);
+                for (i = 0; i < 5; i++) {
+                    for (j = 0; j < 5; j++) {
+                        if (i != 2 && j != 2) {  // Don't render, Free Space
+                            currentNum = Integer.toString(cardNumbers[i][j]);
                             if (cardNumbers[i][j] < 10) {
                                 currentNum = "0" + cardNumbers[i][j];
                             }
 
-                            String path = iconDir + "/" + currentNum + ".png";
-                            allNumbers = true;
+                            path = iconDir + "/" + currentNum + ".png";
 
                             // If icon exists use, otherwise use a Number
                             if (new File(path).exists()) {
-                                PDImageXObject icon = PDImageXObject.createFromFile(path, doc);
+                                icon = PDImageXObject.createFromFile(path, doc);
                                 contents.drawImage(icon, 52 + iAdder, 79 + jAdder, 81, 81);
                             } else {
-                                allNumbers = false;
-
                                 contents.beginText();
                                 contents.setFont(PDType1Font.TIMES_BOLD, 50);
                                 contents.newLineAtOffset(52 + iAdder, 79 + jAdder);
@@ -979,13 +1076,13 @@ public class Main extends Application {
                                 contents.endText();
                             }
                         }
+
                         // Needs to vary movement every 2nd square
                         if (j % 2 == 0) {
                             jAdder += 105;
                         } else {
                             jAdder += 106;
                         }
-
                     }
                     jAdder = 0;
 
@@ -997,27 +1094,33 @@ public class Main extends Application {
                     }
                 }
 
-                if(numOfCards > 1) {
-                    // Create Page Number in Corner
-                    contents.beginText();
-                    contents.setFont(PDType1Font.TIMES_BOLD, 50);
+                if (pageNums) {
+                    if (games > 1) {
+                        // Create Page Number in Corner
+                        contents.beginText();
+                        contents.setFont(PDType1Font.TIMES_BOLD, 50);
 
-                    if (n + 1 >= 10) {
-                        contents.newLineAtOffset(550, 745);
-                    } else {
-                        contents.newLineAtOffset(575, 745);
+                        if (n >= 10) {
+                            contents.newLineAtOffset(550, 745);
+                        } else {
+                            contents.newLineAtOffset(575, 745);
+                        }
+                        contents.showText(Integer.toString(n));
+                        contents.endText();
                     }
-                    contents.showText(Integer.toString(n + 1));
-                    contents.endText();
                 }
-
 
                 contents.close();
                 doc.addPage(page);
+
+                updateProgressBar(b, n, books, games);
             }
+
+            // TODO ID
+            doc.save(saveDir + "/Cards - " + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
+            doc.close();
         }
-        doc.save(projectDirectory.getParentFile() + "/Bingo Cards -" + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
-        doc.close();
+        return null;
     }
 
     public void warningPopup(String warning){
@@ -1051,9 +1154,83 @@ public class Main extends Application {
         });
     }
 
+    public void generatePopup(){
+        Stage genStage = new Stage();
+        genStage.setTitle("Generating...");
+        genStage.setResizable(false);
+        BorderPane mainPane = new BorderPane();
+
+        Text titleText = new Text("BINGO Cards Generating");
+        titleText.setStyle("-fx-font-weight: bold; -fx-font-size: 15px");
+        Text messageText = new Text("This make take a couple minutes...");
+        progressBar = new ProgressBar(0);
+        progressBar.setStyle("-fx-pref-width: 200px");
+        timeText = new Text("Approximately " + "10 minutes and " + "20 seconds");
+        bookText = new Text("Booklet " + "0" + " of " + printedBooklets);
+        bookText.setStyle("-fx-font-weight: bold; -fx-fill: green");
+        pageText = new Text("Page " + "0" + " of " + gamesPerBooklet);
+        pageText.setStyle("-fx-font-weight: bold; -fx-fill: green");
+
+        VBox topBox = new VBox();
+        topBox.setPadding(new Insets(10, 0, 0, 0));
+        VBox messageBox = new VBox();
+        topBox.setAlignment(Pos.CENTER);
+        topBox.setSpacing(5);
+        messageBox.setAlignment(Pos.CENTER);
+        messageBox.setSpacing(5);
+        topBox.getChildren().add(titleText);
+        topBox.getChildren().add(messageText);
+        messageBox.getChildren().add(timeText);
+        messageBox.getChildren().add(progressBar);
+        messageBox.getChildren().add(bookText);
+        messageBox.getChildren().add(pageText);
+        mainPane.setTop(topBox);
+        mainPane.setCenter(messageBox);
+
+        Scene genScene = new Scene(mainPane, 250, 140);
+        genStage.setScene(genScene);
+        genStage.show();
+
+        try {
+            Task<Void> executeAppTask = new Task<Void>() {
+                @Override
+                protected Void call() throws Exception {
+                    Process p = Runtime.getRuntime().exec(generatePDF());
+                    p.waitFor();
+
+                    return null;
+                }
+            };
+
+            executeAppTask.setOnSucceeded(e -> {
+                // code to execute when task completes normally
+            });
+
+            executeAppTask.setOnFailed(e -> {
+                Throwable problem = executeAppTask.getException();
+                // code to execute if task throws exception
+            });
+
+            executeAppTask.setOnCancelled(e -> {
+                // task was cancelled
+            });
+
+            Thread thread = new Thread(executeAppTask);
+            thread.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Save properties to properties file
+     */
     public void saveToProperties() {
         JSONObject obj = new JSONObject();
         obj.put("games", gamesPerBooklet);
+        obj.put("print", printedBooklets);
+        obj.put("pageNum", pageNumbers);
+        obj.put("divide", dividePages);
 
         try {
             FileWriter fileProps = new FileWriter(projectDirectory + "/" + "bingo.properties");
@@ -1062,5 +1239,19 @@ public class Main extends Application {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void updateProgressBar(int b, int n, int books, int games) {
+        bookText.setText("Booklet " + b + " of " + books);
+        pageText.setText("Page " + n + " of " + games);
+        //TODO fix timer and progress bar
+        int rawTime = (games * books) - n;
+        int minTime = rawTime / 60;
+        int secTime = rawTime % 60;
+        timeText.setText("Approximately " + minTime + " minutes and " + secTime + " seconds");
+        System.out.println((((double)n + (((double)b-1) * (double)games))));
+        System.out.println((double)games * (double)books);
+        System.out.println(((((double)n + (((double)b-1) * (double)games))) / (double)games * (double)books)/100);
+        progressBar.setProgress(((((double)n + (((double)b-1) * (double)games))) / (double)games * (double)books)/100);
     }
 }
