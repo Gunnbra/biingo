@@ -366,7 +366,7 @@ public class Main extends Application {
         pagesPane.setPadding(new Insets(2, 10, 2, 10));
         // Generate and create numbers for # of cards to generate
         ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
-        for(int i = 1; i < 100; i++){
+        for(int i = 1; i <= 25; i++){
             genNumbers.add(Integer.toString(i));
         }
         Text comboText = new Text("Games per Booklet:");
@@ -487,7 +487,7 @@ public class Main extends Application {
         comboBox.setPadding(new Insets(2, 10, 2, 10));
         // Generate 100 numbers
         ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
-        for(int i = 1; i < 100; i++){
+        for(int i = 1; i <= 100; i++){
             genNumbers.add(Integer.toString(i));
         }
         Text comboText = new Text("Booklets Printed:");
