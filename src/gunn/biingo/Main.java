@@ -27,14 +27,16 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
-import net.sf.json.JSONObject;
-import net.sf.json.JSONSerializer;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.util.Random;
@@ -216,7 +218,13 @@ public class Main extends Application {
         }
 
         // Get Properties
-        JSONObject jo = (JSONObject) JSONSerializer.toJSON(projectDirectory + "/" + "bingo.properties");
+        Object obj = null;
+        try {
+            obj = new JSONParser().parse(new FileReader(projectDirectory + "/" + "bingo.properties"));
+        } catch (IOException | ParseException e) {
+            e.printStackTrace();
+        }
+        JSONObject jo = (JSONObject) obj;
 
         if (jo.get("games") != null) {
             gamesPerBooklet = Integer.parseInt(jo.get("games").toString());
@@ -238,8 +246,14 @@ public class Main extends Application {
             nextId = Integer.parseInt(jo.get("nextid").toString());
         }
 
-        // Get Database
-        JSONObject joo = (JSONObject) JSONSerializer.toJSON(projectDirectory + "/" + "bingo.database");
+        // Database
+        obj = null;
+        try {
+            obj = new JSONParser().parse(new FileReader(projectDirectory + "/" + "bingo.database"));
+        } catch (IOException | ParseException e) {
+            e.printStackTrace();
+        }
+         JSONObject joo = (JSONObject) obj;
         if (joo != null) {
             cardDatabase = joo;
         }
@@ -630,7 +644,11 @@ public class Main extends Application {
         buttonViewCards.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                databasePopup();
+                try {
+                    databasePopup();
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -1121,6 +1139,12 @@ public class Main extends Application {
                 iAdder = 0;
                 jAdder = 0;
 
+                contents.beginText();
+                contents.setFont(PDType1Font.TIMES_BOLD, 25);
+                contents.newLineAtOffset(250, 750);
+                contents.showText("ID: " + finalId);
+                contents.endText();
+
                 // Iterates through each square, places each icon
                 for (i = 0; i < 5; i++) {
                     for (j = 0; j < 5; j++) {
@@ -1344,7 +1368,7 @@ public class Main extends Application {
     /**
      * Popup window for card database
      */
-    public void databasePopup() {
+    public void databasePopup() throws ParseException {
         File templateDir = new File(projectDirectory + "/templates");
         File iconDir = new File(projectDirectory + "/icons");
 
@@ -1386,19 +1410,39 @@ public class Main extends Application {
         cardView.setFitHeight(600);
         cardView.setFitWidth(500);
         stackPane.getChildren().add(cardView);
+
+
         // Render Icons
+        JSONObject cardJSON= (JSONObject) new JSONParser().parse((String)cardDatabase.get("0004401"));
+        JSONObject letterJSON;
+        String slotNum;
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < 5; j++) {
-                JSONObject currentCard = cardDatabase.getJSONObject("0003201");
-                System.out.println(currentCard.get(0));
-                // System.out.println(((JSONObject) currentCard.get(i)).get(j).toString());
-                Image icon = new Image("file:" + iconDir + "/" + "01.png");
-                ImageView iconView = new ImageView(icon);
-                iconView.setFitWidth(90);
-                iconView.setFitHeight(90);
-                iconView.setTranslateX(-175 + (j * 87));
-                iconView.setTranslateY(210 - (i * 80));
-                stackPane.getChildren().add(iconView);
+                if (i != 2 || j != 2) {
+                    letterJSON = (JSONObject) cardJSON.get(Integer.toString(i));
+                    slotNum = letterJSON.get(Integer.toString(j)).toString();
+
+                    if (slotNum.length() == 1) {
+                        slotNum = "0" + slotNum;
+                    }
+
+                    File slotIcon = new File(iconDir + "/" + slotNum + ".png");
+                    if (slotIcon.exists()) {
+                        Image icon = new Image("file:" + slotIcon.getAbsolutePath());
+                        ImageView iconView = new ImageView(icon);
+                        iconView.setFitWidth(60);
+                        iconView.setFitHeight(60);
+                        iconView.setTranslateX(-175 + (i * 87));
+                        iconView.setTranslateY(210 - (j * 80));
+                        stackPane.getChildren().add(iconView);
+                    } else {
+                        Text text = new Text(slotNum);
+                        text.setStyle("-fx-font-size: 20px; -fx-font-weight: bold");
+                        text.setTranslateX(-175 + (i * 87));
+                        text.setTranslateY(210 - (j * 80));
+                        stackPane.getChildren().add(text);
+                    }
+                }
             }
         }
         mainPane.getChildren().add(stackPane);
