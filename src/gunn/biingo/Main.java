@@ -27,22 +27,17 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import net.sf.json.JSONObject;
+import net.sf.json.JSONSerializer;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-
 import java.io.*;
 import java.nio.file.Files;
-import java.text.DecimalFormat;
-import java.util.Iterator;
 import java.util.Random;
-import java.util.Set;
 
 public class Main extends Application {
     Stage primaryStage = null;
@@ -101,7 +96,6 @@ public class Main extends Application {
         // Elements
         Button buttonLoad = new Button("Load");
         buttonLoad.getStyleClass().add("record-sales");
-        buttonLoad.text
         buttonLoad.setMinWidth(100);
         Button buttonNew = new Button("New");
         buttonNew.setMinWidth(100);
@@ -111,7 +105,7 @@ public class Main extends Application {
         //Copyrights
         HBox copyBox = new HBox();
         copyBox.setStyle("-fx-background-color: #ed827e");
-        copyBox.setPadding(new Insets(5,5,5,5));
+        copyBox.setPadding(new Insets(5, 5, 5, 5));
         copyBox.setAlignment(Pos.CENTER_RIGHT);
         // Elements
         Text copy = new Text("V1.1.0 - Copyright Brady Gunn 2020. All rights reserved");
@@ -164,7 +158,7 @@ public class Main extends Application {
     /**
      * Creates file structure for project
      */
-    public void createProjectDirectory(File file){
+    public void createProjectDirectory(File file) {
         // Created Project Data Directory
         String parentPath = file.getParent();
         String nameProject = file.getName().substring(0, file.getName().length() - 6);
@@ -197,7 +191,7 @@ public class Main extends Application {
         // Project File
         file.mkdir();
 
-        if(projectDir.exists()){
+        if (projectDir.exists()) {
             projectDirectory = projectDir;
             windowProject();
         } else {
@@ -208,61 +202,51 @@ public class Main extends Application {
     /**
      * Load file structure for project
      */
-    public void loadProjectDirectory(File file){
+    public void loadProjectDirectory(File file) {
         boolean success = true;
 
-        if(file.exists()) {
+        if (file.exists()) {
             projectDirectory = file;
         } else {
             success = false;
         }
 
-        if(!new File(projectDirectory + "/icons").exists()){
+        if (!new File(projectDirectory + "/icons").exists()) {
             success = false;
         }
 
         // Get Properties
-        try {
-            Object obj = new JSONParser().parse(new FileReader(projectDirectory + "/" + "bingo.properties"));
-            JSONObject jo = (JSONObject) obj;
+        JSONObject jo = (JSONObject) JSONSerializer.toJSON(projectDirectory + "/" + "bingo.properties");
 
-            if(jo.get("games") != null) {
-                gamesPerBooklet = Integer.parseInt(jo.get("games").toString());
-            }
+        if (jo.get("games") != null) {
+            gamesPerBooklet = Integer.parseInt(jo.get("games").toString());
+        }
 
-            if(jo.get("print") != null) {
-                printedBooklets = Integer.parseInt(jo.get("print").toString());
-            }
+        if (jo.get("print") != null) {
+            printedBooklets = Integer.parseInt(jo.get("print").toString());
+        }
 
-            if(jo.get("pageNum") != null) {
-                pageNumbers = jo.get("pageNum").toString().equals("true");
-            }
+        if (jo.get("pageNum") != null) {
+            pageNumbers = jo.get("pageNum").toString().equals("true");
+        }
 
-            if(jo.get("divide") != null) {
-                dividePages = jo.get("divide").toString().equals("true");
-            }
+        if (jo.get("divide") != null) {
+            dividePages = jo.get("divide").toString().equals("true");
+        }
 
-            if(jo.get("nextid") != null) {
-                nextId = Integer.parseInt(jo.get("nextid").toString());
-            }
-        } catch (IOException | ParseException e) {
-            e.printStackTrace();
+        if (jo.get("nextid") != null) {
+            nextId = Integer.parseInt(jo.get("nextid").toString());
         }
 
         // Get Database
-        try {
-            Object obj = new JSONParser().parse(new FileReader(projectDirectory + "/" + "bingo.database"));
-            JSONObject jo = (JSONObject) obj;
-            if(jo != null) {
-                cardDatabase = jo;
-            }
-        } catch (IOException | ParseException e) {
-            e.printStackTrace();
+        JSONObject joo = (JSONObject) JSONSerializer.toJSON(projectDirectory + "/" + "bingo.database");
+        if (joo != null) {
+            cardDatabase = joo;
         }
 
-        if(success){
+        if (success) {
             windowProject();
-        }else{
+        } else {
             warningPopup("PROJECT DIRECTORY IS INVALID - loadProjectDirectory()");
         }
     }
@@ -395,7 +379,7 @@ public class Main extends Application {
         pagesPane.setPadding(new Insets(2, 10, 2, 10));
         // Generate and create numbers for # of cards to generate
         ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
-        for(int i = 1; i <= 25; i++){
+        for (int i = 1; i <= 25; i++) {
             genNumbers.add(Integer.toString(i));
         }
         Text comboText = new Text("Games per Booklet:");
@@ -516,7 +500,7 @@ public class Main extends Application {
         comboBox.setPadding(new Insets(2, 10, 2, 10));
         // Generate 100 numbers
         ObservableList<String> genNumbers = FXCollections.observableArrayList(" ");
-        for(int i = 1; i <= 100; i++){
+        for (int i = 1; i <= 100; i++) {
             genNumbers.add(Integer.toString(i));
         }
         Text comboText = new Text("Booklets Printed:");
@@ -725,12 +709,13 @@ public class Main extends Application {
     };
 
     // ------ RENDER ------
+
     /**
      * Renders icons in Card editor
      */
     public void rerenderPreviews() {
         File iconDir = new File(projectDirectory + "/" + "icons");
-        if(iconDir.exists()) {
+        if (iconDir.exists()) {
             String[] fileList = iconDir.list();
 
             this.previewFlowPane.getChildren().clear(); // Removes all so it can be re rendered
@@ -756,7 +741,7 @@ public class Main extends Application {
                         try {
                             comboBox.getSelectionModel().select(fileList[i].substring(0, 2));
                         } catch (Exception e) {
-                            warningPopup("TWO DIGIT LONG FILE NAME IS NOT VIABLE (1-75): " + fileList[i].substring(0,2) + " - rerenderPreview()");
+                            warningPopup("TWO DIGIT LONG FILE NAME IS NOT VIABLE (1-75): " + fileList[i].substring(0, 2) + " - rerenderPreview()");
                         }
                     }
 
@@ -788,14 +773,14 @@ public class Main extends Application {
         boolean redo = false;
 
         File templateDir = new File(projectDirectory + "/" + "templates");
-        if(templateDir.exists()) {
+        if (templateDir.exists()) {
             String[] fileList = templateDir.list();
 
             this.previewTemplateFlowPane.getChildren().clear(); // Removes all so it can be re rendered
             if (fileList != null) {
 
                 final File defaultTemplate = new File(templateDir.getAbsolutePath() + "/01.png");
-                if(defaultTemplate.exists()) {
+                if (defaultTemplate.exists()) {
                     buttonGenerate.setDisable(false);
                     warnBox.setVisible(false);
                 } else {
@@ -805,10 +790,10 @@ public class Main extends Application {
 
                 for (int i = 0; i < fileList.length; i++) {
                     final File currentFile = new File(templateDir.getAbsolutePath() + "/" + fileList[i]);
-                    String numName = currentFile.getName().substring(0, currentFile.getName().length() -4);
+                    String numName = currentFile.getName().substring(0, currentFile.getName().length() - 4);
 
-                    if(numName.length() == 2){
-                        if(Integer.parseInt(numName) > gamesPerBooklet) {
+                    if (numName.length() == 2) {
+                        if (Integer.parseInt(numName) > gamesPerBooklet) {
                             String newValue = RandomStringUtils.randomAlphanumeric(8);
                             currentFile.renameTo(new File(templateDir.getAbsolutePath() + "/" + newValue + ".png"));
                             redo = true;
@@ -833,7 +818,7 @@ public class Main extends Application {
                         try {
                             comboBox.getSelectionModel().select(fileList[i].substring(0, 2));
                         } catch (Exception e) {
-                            warningPopup("TWO DIGIT LONG FILE NAME IS NOT VIABLE (1-99): " + fileList[i].substring(0,2) + " - rerenderTemplatePreview()");
+                            warningPopup("TWO DIGIT LONG FILE NAME IS NOT VIABLE (1-99): " + fileList[i].substring(0, 2) + " - rerenderTemplatePreview()");
                         }
                     }
 
@@ -857,7 +842,7 @@ public class Main extends Application {
             warningPopup("TEMPLATE DIRECTORY DOESNT EXIST - rerenderTemplatePreview()");
         }
 
-        if(redo) {
+        if (redo) {
             rerenderTemplatePreviews();
         }
     }
@@ -877,7 +862,7 @@ public class Main extends Application {
         String[] fileList = iconDir.list();
 
         // Loops through B I N G O
-        for (int i = 0; i < 5; i ++) {
+        for (int i = 0; i < 5; i++) {
             VBox vBox = new VBox();
             vBox.setAlignment(Pos.CENTER);
             vBox.setPadding(new Insets(0, 10, 0, 10));
@@ -899,14 +884,14 @@ public class Main extends Application {
                 numBox.getChildren().add(textNumber);
 
                 String numberName = Integer.toString(j + (i * 15));
-                if(Integer.parseInt(numberName) < 10) {
+                if (Integer.parseInt(numberName) < 10) {
                     numberName = "0" + numberName;
                 }
 
                 File numFile = new File(iconDir.getAbsolutePath() + "/" + numberName + ".png");
 
                 // If icon file of number exists, use element, if not use a large text version of number
-                if(numFile.exists()) {
+                if (numFile.exists()) {
                     Image image = new Image("file:" + numFile);
                     ImageView imageView = new ImageView(image);
                     imageView.setFitHeight(30);
@@ -939,18 +924,19 @@ public class Main extends Application {
     }
 
     // ------ GENERATION ------
+
     /**
      * Generates available icon numbers
      */
-    public ObservableList<String> iconOptions(){
-        ObservableList<String> options =  FXCollections.observableArrayList(
+    public ObservableList<String> iconOptions() {
+        ObservableList<String> options = FXCollections.observableArrayList(
                 " "
         );
 
-        for(int i = 0; i < 76; i++){
+        for (int i = 0; i < 76; i++) {
             String currentNum = Integer.toString(i);
 
-            if (i == 0){
+            if (i == 0) {
                 currentNum = "Unlink";
             } else if (i < 10) {
                 currentNum = "0" + Integer.toString(i);
@@ -958,7 +944,7 @@ public class Main extends Application {
 
             File currentFile = new File(projectDirectory + "/icons/" + currentNum + ".png");
 
-            if(!currentFile.exists()){
+            if (!currentFile.exists()) {
                 options.add(currentNum);
             }
         }
@@ -969,15 +955,15 @@ public class Main extends Application {
     /**
      * Generates available template numbers
      */
-    public ObservableList<String> templateOptions(){
-        ObservableList<String> options =  FXCollections.observableArrayList(
+    public ObservableList<String> templateOptions() {
+        ObservableList<String> options = FXCollections.observableArrayList(
                 " "
         );
 
-        for(int i = 0; i < gamesPerBooklet + 1; i++){
+        for (int i = 0; i < gamesPerBooklet + 1; i++) {
             String currentNum = Integer.toString(i);
 
-            if (i == 0){
+            if (i == 0) {
                 currentNum = "Unlink";
             } else if (i < 10) {
                 currentNum = "0" + Integer.toString(i);
@@ -985,7 +971,7 @@ public class Main extends Application {
 
             File currentFile = new File(projectDirectory + "/templates/" + currentNum + ".png");
 
-            if(!currentFile.exists()){
+            if (!currentFile.exists()) {
                 options.add(currentNum);
             }
         }
@@ -1026,7 +1012,7 @@ public class Main extends Application {
         String bookID = Integer.toString(next);
         next++;
 
-        switch(bookID.length()){
+        switch (bookID.length()) {
             case 1:
                 bookID = "0000" + bookID;
                 break;
@@ -1069,7 +1055,7 @@ public class Main extends Application {
         final boolean pageNums = pageNumbers;
         final File[] fileTemplates = new File[games + 1];
 
-        JSONObject tempDatabase = (JSONObject) cardDatabase.clone();
+        JSONObject tempDatabase = (JSONObject) cardDatabase;
         int nextCardID = nextId;
 
         //Gathering Templates
@@ -1094,7 +1080,7 @@ public class Main extends Application {
         }
 
         doc = null;
-        if(! dividePages) {
+        if (!dividePages) {
             doc = new PDDocument();
         }
 
@@ -1103,7 +1089,7 @@ public class Main extends Application {
 
         // Create new page based on # of cards specified
         for (b = 1; b < books + 1; b++) { // BOOKLETS PRINTED
-            if(dividePages) {
+            if (dividePages) {
                 doc = new PDDocument();
             }
 
@@ -1116,7 +1102,7 @@ public class Main extends Application {
                 JSONObject cardObj = randomizeCard();
 
                 // Save card to database
-                if(n < 10){
+                if (n < 10) {
                     finalId = bookId + "0" + n;
                 } else {
                     finalId = bookId + n;
@@ -1199,17 +1185,17 @@ public class Main extends Application {
 
                 updateProgressBar(b, n, books, games);
             }
-            if(dividePages) {
+            if (dividePages) {
                 doc.save(saveDir + "/Cards - " + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
                 doc.close();
-                cardDatabase = (JSONObject) tempDatabase.clone();
+                cardDatabase = (JSONObject) tempDatabase;
                 nextId = nextCardID;
             }
         }
-        if(!dividePages) {
+        if (!dividePages) {
             doc.save(saveDir + "/Cards - " + RandomStringUtils.randomAlphanumeric(8) + ".pdf");
             doc.close();
-            cardDatabase = (JSONObject) tempDatabase.clone();
+            cardDatabase = (JSONObject) tempDatabase;
             nextId = nextCardID;
         }
         return null;
@@ -1219,6 +1205,7 @@ public class Main extends Application {
 
     /**
      * Popup window for errors
+     *
      * @param warning
      */
     public void warningPopup(String warning) {
@@ -1392,7 +1379,6 @@ public class Main extends Application {
         listPane.getChildren().add(buttonDelete);
         mainPane.getChildren().add(listPane);
 
-
         // Card pane
         StackPane stackPane = new StackPane();
         Image card = new Image("file:" + templateDir + "/" + "01.png");
@@ -1401,8 +1387,11 @@ public class Main extends Application {
         cardView.setFitWidth(500);
         stackPane.getChildren().add(cardView);
         // Render Icons
-        for(int i = 0; i < 5; i++) {
-            for(int j = 0; j < 5; j++) {
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 5; j++) {
+                JSONObject currentCard = cardDatabase.getJSONObject("0003201");
+                System.out.println(currentCard.get(0));
+                // System.out.println(((JSONObject) currentCard.get(i)).get(j).toString());
                 Image icon = new Image("file:" + iconDir + "/" + "01.png");
                 ImageView iconView = new ImageView(icon);
                 iconView.setFitWidth(90);
@@ -1441,7 +1430,7 @@ public class Main extends Application {
 
         try {
             FileWriter fileProps = new FileWriter(projectDirectory + "/" + "bingo.properties");
-            fileProps.write(obj.toJSONString());
+            fileProps.write(obj.toString());
             fileProps.flush();
         } catch (IOException e) {
             e.printStackTrace();
@@ -1452,10 +1441,10 @@ public class Main extends Application {
         tempDatabase.put(id, card.toString());
     }
 
-    public void saveCardDatabase(){
+    public void saveCardDatabase() {
         try {
             FileWriter fileProps = new FileWriter(projectDirectory + "/" + "bingo.database");
-            fileProps.write(cardDatabase.toJSONString());
+            fileProps.write(cardDatabase.toString());
             fileProps.flush();
         } catch (IOException e) {
             e.printStackTrace();
@@ -1466,8 +1455,8 @@ public class Main extends Application {
         bookText.setText("Booklet " + b + " of " + books);
         pageText.setText("Page " + n + " of " + games);
 
-        double onNum = (((double)n + (((double)b-1) * (double)games)));
-        double total = ((double)games * (double)books);
+        double onNum = (((double) n + (((double) b - 1) * (double) games)));
+        double total = ((double) games * (double) books);
 
         int rawTime = (int) (total - onNum) / 2;
         int minTime = rawTime / 60;
