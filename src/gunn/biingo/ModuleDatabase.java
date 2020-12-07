@@ -9,6 +9,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
@@ -29,6 +30,9 @@ public class ModuleDatabase {
     private HBox databasePane;
     private VBox listPane;
     private JSONObject cardDatabase = new JSONObject();
+    private ListView<String> cardList;
+    private boolean showNums = false;
+    private boolean[] tracked = new boolean[76];
 
     public ModuleDatabase(File projDir) {
         projectDirectory = projDir;
@@ -53,7 +57,7 @@ public class ModuleDatabase {
         textTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-fill: white");
         listPane.getChildren().add(textTitle);
         // Card List Element
-        ListView<String> cardList = new ListView<String>();
+        cardList = new ListView<String>();
         ObservableList<String> cardItems = FXCollections.observableArrayList();
         for (Object o : cardDatabase.keySet()) {
             cardItems.add((String) o);
@@ -61,12 +65,17 @@ public class ModuleDatabase {
         FXCollections.sort(cardItems);
         cardList.setItems(cardItems);
         listPane.getChildren().add(cardList);
+        // Checkbox
+        CheckBox checkShowNum = new CheckBox("Show Numbers");
+        checkShowNum.setStyle("-fx-font-weight: bold; -fx-fill: white");
+        listPane.getChildren().add(checkShowNum);
         // SearchBar
         TextField searchField = new TextField();
         listPane.getChildren().add(searchField);
         // Buttons
-        Button buttonDelete = new Button("DELETE Card Database");
-        listPane.getChildren().add(buttonDelete);
+        // TODO DELETE BUTTON
+       // Button buttonDelete = new Button("DELETE Card Database");
+       // listPane.getChildren().add(buttonDelete);
         databasePane.getChildren().add(listPane);
 
         rerenderDatabaseCard(cardList.getSelectionModel().getSelectedItem());
@@ -130,11 +139,30 @@ public class ModuleDatabase {
                 });
             }
         });
+
+        checkShowNum.selectedProperty().addListener(new ChangeListener<Boolean>() {
+            @Override
+            public void changed(ObservableValue<? extends Boolean> observableValue, Boolean aBoolean, Boolean t1) {
+                showNums = t1;
+                try {
+                    rerenderDatabaseCard(cardList.getSelectionModel().getSelectedItem());
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
      * Rerender cardview for the database window
      */
+    public void rerenderDatabaseCard() {
+        try {
+            rerenderDatabaseCard(cardList.getSelectionModel().getSelectedItem());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
     public void rerenderDatabaseCard(String cardID) throws ParseException {
         File templateDir = new File(projectDirectory + "/templates");
         File iconDir = new File(projectDirectory + "/icons");
@@ -147,7 +175,13 @@ public class ModuleDatabase {
         cardView.setFitWidth(500);
         stackPane.getChildren().add(cardView);
 
+        // Dabbed Icon
+        Image dab = new Image(getClass().getResource("/assets/dab.png").toExternalForm());
+        ImageView dabView;
+
+
         if (cardDatabase.get(cardID) != null) {
+
             // Render Icons
             JSONObject cardJSON = (JSONObject) new JSONParser().parse((String) cardDatabase.get(cardID));
             JSONObject letterJSON;
@@ -171,17 +205,31 @@ public class ModuleDatabase {
                             iconView.setTranslateX(-175 + (i * 87));
                             iconView.setTranslateY(210 - (j * 80));
                             stackPane.getChildren().add(iconView);
-                        } else {
+                        }
+
+                        if (!slotIcon.exists() || showNums) {
                             Text text = new Text(slotNum);
                             text.setStyle("-fx-font-size: 20px; -fx-font-weight: bold");
                             text.setTranslateX(-175 + (i * 87));
                             text.setTranslateY(210 - (j * 80));
                             stackPane.getChildren().add(text);
                         }
+
+                        // If dabbed, show on card
+                        if(tracked[Integer.parseInt(slotNum)]) {
+                            // Dabbed Icon
+                            dabView = new ImageView(dab);
+                            dabView.setFitWidth(60);
+                            dabView.setFitHeight(60);
+                            dabView.setTranslateX(-175 + (i * 87));
+                            dabView.setTranslateY(210 - (j * 80));
+                            stackPane.getChildren().add(dabView);
+                        }
                     }
                 }
             }
         }
+
         if (databasePane.getChildren().size() > 1) {
             databasePane.getChildren().remove(databasePane.getChildren().size() - 1);
         }
@@ -194,6 +242,10 @@ public class ModuleDatabase {
 
     public void setCardDatabase(JSONObject cardDatabase) {
         this.cardDatabase = cardDatabase;
+    }
+
+    public void setTracked(boolean[] track){
+        tracked = track;
     }
 
 }

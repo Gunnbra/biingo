@@ -1,5 +1,7 @@
 package gunn.biingo;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -18,10 +20,13 @@ import javafx.scene.text.TextAlignment;
 import org.json.simple.parser.ParseException;
 
 import java.io.File;
+import java.util.Arrays;
 
 public class ModulePlay {
     private File projectDirectory;
     private ModuleDatabase moduleDatabase;
+
+    private boolean[] trackedNumbers = new boolean[76];
 
     public ModulePlay(File projDir, ModuleDatabase modData) {
         projectDirectory = projDir;
@@ -36,7 +41,7 @@ public class ModulePlay {
         VBox callBox = new VBox();
         callBox.setAlignment(Pos.CENTER);
         callBox.setSpacing(10);
-        callBox.setPadding(new Insets(0, 10, 0, 10));
+        callBox.setPadding(new Insets(0, 0, 0, 0));
         // B I N G O
         HBox bingoBox = new HBox();
         bingoBox.setAlignment(Pos.CENTER);
@@ -71,17 +76,15 @@ public class ModulePlay {
         // BOTTOM
         HBox optionBox = new HBox();
         optionBox.setAlignment(Pos.CENTER);
-        optionBox.setSpacing(10);
-        optionBox.setPadding(new Insets(10, 10, 10, 10));
+        optionBox.setSpacing(100);
+        optionBox.setPadding(new Insets(10, 5, 10, 5));
         // Elements
         Button buttonReset = new Button("Reset Board");
         Button buttonVerify = new Button("Verification");
         Button buttonLastCalled = new Button("Last Called");
-        Button buttonViewCards = new Button("Card List");
         optionBox.getChildren().add(buttonReset);
         optionBox.getChildren().add(buttonVerify);
         optionBox.getChildren().add(buttonLastCalled);
-        optionBox.getChildren().add(buttonViewCards);
         mainLayout.setBottom(optionBox);
 
         tab.setContent(mainLayout);
@@ -89,7 +92,7 @@ public class ModulePlay {
         // Listeners
 
         //Button View Cards
-        buttonViewCards.setOnAction(new EventHandler<ActionEvent>() {
+        buttonVerify.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
                 try {
@@ -159,6 +162,18 @@ public class ModulePlay {
 
                 // Add checkbox
                 CheckBox checkNum = new CheckBox();
+                String finalNumberName = numberName;
+                checkNum.selectedProperty().addListener(new ChangeListener<Boolean>() {
+                    @Override
+                    public void changed(ObservableValue<? extends Boolean> observableValue, Boolean aBoolean, Boolean t1) {
+                        int num = Integer.parseInt(finalNumberName);
+
+                        trackedNumbers[num] = t1;
+                        moduleDatabase.setTracked(trackedNumbers);
+                        moduleDatabase.rerenderDatabaseCard();
+                    }
+                });
+
                 numBox.getChildren().add(checkNum);
                 vBox.getChildren().add(numBox);
             }

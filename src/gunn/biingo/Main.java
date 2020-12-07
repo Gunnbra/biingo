@@ -111,7 +111,7 @@ public class Main extends Application {
 
         // Set Scene
         primaryStage.setScene(mainMenuScene);
-        primaryStage.setResizable(false);
+        primaryStage.setResizable(true);
         primaryStage.show();
 
         // Listeners
