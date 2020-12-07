@@ -64,6 +64,9 @@ public class Main extends Application {
     ProgressBar progressBar;
     Thread thread;
 
+    HBox databasePane;
+    VBox listPane;
+
     public static void main(String[] args) throws Exception {
         launch(args);
     }
@@ -1369,15 +1372,12 @@ public class Main extends Application {
      * Popup window for card database
      */
     public void databasePopup() throws ParseException {
-        File templateDir = new File(projectDirectory + "/templates");
-        File iconDir = new File(projectDirectory + "/icons");
-
         Stage stage = new Stage();
         stage.setTitle("Card Database");
-        HBox mainPane = new HBox();
+        databasePane = new HBox();
 
         // List Pane
-        VBox listPane = new VBox();
+        listPane = new VBox();
         listPane.setAlignment(Pos.CENTER);
         listPane.setSpacing(10);
         listPane.setPadding(new Insets(10, 10, 10, 10));
@@ -1399,9 +1399,79 @@ public class Main extends Application {
         TextField searchField = new TextField();
         listPane.getChildren().add(searchField);
         // Buttons
-        Button buttonDelete = new Button("Clear Cards");
+        Button buttonDelete = new Button("DELETE Card Database");
         listPane.getChildren().add(buttonDelete);
-        mainPane.getChildren().add(listPane);
+        databasePane.getChildren().add(listPane);
+
+        rerenderDatabaseCard(cardList.getSelectionModel().getSelectedItem());
+
+        Scene scene = new Scene(databasePane, 700, 600);
+        stage.setScene(scene);
+        stage.setResizable(false);
+        stage.show();
+
+        // Listeners
+        // Card list listener
+        cardList.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                if(!cardList.getSelectionModel().getSelectedItem().equals("No Results Found.")) {
+
+                    try {
+                        rerenderDatabaseCard(cardList.getSelectionModel().getSelectedItem());
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        // search box listener
+        searchField.textProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                ListView<String> cardList = new ListView<String>();
+                ObservableList<String> cardItems = FXCollections.observableArrayList();
+
+
+                for (Object o : cardDatabase.keySet()) {
+                    if(((String) o).contains(newValue)){
+                        cardItems.add((String) o);
+                    }
+                }
+
+                if(cardItems.size() == 0){
+                    cardItems.add("No Results Found.");
+                }
+
+                FXCollections.sort(cardItems);
+                cardList.setItems(cardItems);
+
+                listPane.getChildren().set(1, cardList);
+
+                cardList.setOnMouseClicked(new EventHandler<MouseEvent>() {
+                    @Override
+                    public void handle(MouseEvent event) {
+                        if(!cardList.getSelectionModel().getSelectedItem().equals("No Results Found.")) {
+
+                            try {
+                                rerenderDatabaseCard(cardList.getSelectionModel().getSelectedItem());
+                            } catch (ParseException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Rerender cardview for the database window
+     */
+    public void rerenderDatabaseCard(String cardID) throws ParseException {
+        File templateDir = new File(projectDirectory + "/templates");
+        File iconDir = new File(projectDirectory + "/icons");
 
         // Card pane
         StackPane stackPane = new StackPane();
@@ -1411,54 +1481,45 @@ public class Main extends Application {
         cardView.setFitWidth(500);
         stackPane.getChildren().add(cardView);
 
+        if (cardDatabase.get(cardID) != null) {
+            // Render Icons
+            JSONObject cardJSON = (JSONObject) new JSONParser().parse((String) cardDatabase.get(cardID));
+            JSONObject letterJSON;
+            String slotNum;
+            for (int i = 0; i < 5; i++) {
+                for (int j = 0; j < 5; j++) {
+                    if (i != 2 || j != 2) {
+                        letterJSON = (JSONObject) cardJSON.get(Integer.toString(i));
+                        slotNum = letterJSON.get(Integer.toString(j)).toString();
 
-        // Render Icons
-        JSONObject cardJSON= (JSONObject) new JSONParser().parse((String)cardDatabase.get("0004401"));
-        JSONObject letterJSON;
-        String slotNum;
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 5; j++) {
-                if (i != 2 || j != 2) {
-                    letterJSON = (JSONObject) cardJSON.get(Integer.toString(i));
-                    slotNum = letterJSON.get(Integer.toString(j)).toString();
+                        if (slotNum.length() == 1) {
+                            slotNum = "0" + slotNum;
+                        }
 
-                    if (slotNum.length() == 1) {
-                        slotNum = "0" + slotNum;
-                    }
-
-                    File slotIcon = new File(iconDir + "/" + slotNum + ".png");
-                    if (slotIcon.exists()) {
-                        Image icon = new Image("file:" + slotIcon.getAbsolutePath());
-                        ImageView iconView = new ImageView(icon);
-                        iconView.setFitWidth(60);
-                        iconView.setFitHeight(60);
-                        iconView.setTranslateX(-175 + (i * 87));
-                        iconView.setTranslateY(210 - (j * 80));
-                        stackPane.getChildren().add(iconView);
-                    } else {
-                        Text text = new Text(slotNum);
-                        text.setStyle("-fx-font-size: 20px; -fx-font-weight: bold");
-                        text.setTranslateX(-175 + (i * 87));
-                        text.setTranslateY(210 - (j * 80));
-                        stackPane.getChildren().add(text);
+                        File slotIcon = new File(iconDir + "/" + slotNum + ".png");
+                        if (slotIcon.exists()) {
+                            Image icon = new Image("file:" + slotIcon.getAbsolutePath());
+                            ImageView iconView = new ImageView(icon);
+                            iconView.setFitWidth(60);
+                            iconView.setFitHeight(60);
+                            iconView.setTranslateX(-175 + (i * 87));
+                            iconView.setTranslateY(210 - (j * 80));
+                            stackPane.getChildren().add(iconView);
+                        } else {
+                            Text text = new Text(slotNum);
+                            text.setStyle("-fx-font-size: 20px; -fx-font-weight: bold");
+                            text.setTranslateX(-175 + (i * 87));
+                            text.setTranslateY(210 - (j * 80));
+                            stackPane.getChildren().add(text);
+                        }
                     }
                 }
             }
         }
-        mainPane.getChildren().add(stackPane);
-
-        Scene scene = new Scene(mainPane, 700, 600);
-        stage.setScene(scene);
-        stage.setResizable(false);
-        stage.show();
-
-        // Listeners
-        cardList.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                System.out.println("CLICKED: " + cardList.getSelectionModel().getSelectedItem());
-            }
-        });
+        if (databasePane.getChildren().size() > 1) {
+            databasePane.getChildren().remove(databasePane.getChildren().size() - 1);
+        }
+        databasePane.getChildren().add(stackPane);
     }
 
     /**
