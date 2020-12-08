@@ -111,6 +111,7 @@ public class Main extends Application {
 
         // Set Scene
         primaryStage.setScene(mainMenuScene);
+        primaryStage.getIcons().add(image);
         primaryStage.setResizable(true);
         primaryStage.show();
 
