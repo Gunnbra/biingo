@@ -20,6 +20,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -27,6 +28,7 @@ import java.io.File;
 
 public class ModuleDatabase {
     private final File projectDirectory;
+    private ModulePlay modulePlay;
     private HBox databasePane;
     private VBox listPane;
     private JSONObject cardDatabase = new JSONObject();
@@ -151,6 +153,15 @@ public class ModuleDatabase {
                 }
             }
         });
+
+        // Disable button in Play Module
+        modulePlay.setDisableButtonVerify(true);
+        stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent event) {
+                modulePlay.setDisableButtonVerify(false);
+            }
+        });
     }
 
     /**
@@ -248,5 +259,9 @@ public class ModuleDatabase {
 
     public void setTracked(boolean[] track){
         tracked = track;
+    }
+
+    public void setModulePlay(ModulePlay modPlay) {
+        modulePlay = modPlay;
     }
 }

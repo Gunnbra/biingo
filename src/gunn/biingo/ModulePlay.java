@@ -29,6 +29,10 @@ public class ModulePlay {
     private final ModuleLastCalled moduleLastCalled;
     private VBox callBox;
 
+    private Button buttonReset;
+    private Button buttonVerify;
+    private Button buttonLastCalled;
+
     private boolean[] trackedNumbers = new boolean[76];
 
     public ModulePlay(File projDir, ModuleDatabase modData, ModuleLastCalled moduleLast) {
@@ -83,9 +87,9 @@ public class ModulePlay {
         optionBox.setSpacing(100);
         optionBox.setPadding(new Insets(10, 5, 10, 5));
         // Elements
-        Button buttonReset = new Button("Reset Board");
-        Button buttonVerify = new Button("Verification");
-        Button buttonLastCalled = new Button("Last Called");
+        buttonReset = new Button("Reset Board");
+        buttonVerify = new Button("Verification");
+        buttonLastCalled = new Button("Last Called");
         optionBox.getChildren().add(buttonReset);
         optionBox.getChildren().add(buttonVerify);
         optionBox.getChildren().add(buttonLastCalled);
@@ -258,8 +262,19 @@ public class ModulePlay {
                 callBox.getChildren().remove(callBox.getChildren().size() -1);
                 callBox.getChildren().add(renderPlayTracker());
                 moduleDatabase.rerenderDatabaseCard();
+
+                moduleLastCalled.clear();
+
                 resetStage.close();
             }
         });
+    }
+
+    public void setDisableButtonVerify(boolean bool) {
+        buttonVerify.setDisable(bool);
+    }
+
+    public void setDisableButtonLastCalled(boolean bool) {
+        buttonLastCalled.setDisable(bool);
     }
 }

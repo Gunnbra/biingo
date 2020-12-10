@@ -1,5 +1,6 @@
 package gunn.biingo;
 
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -12,6 +13,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.stage.WindowEvent;
 
 import java.io.File;
 import java.util.Arrays;
@@ -20,6 +22,7 @@ import java.util.LinkedList;
 public class ModuleLastCalled {
     private final File iconDir;
     private final File projectDir;
+    private ModulePlay modulePlay;
 
     private final LinkedList<String> lastCalled = new LinkedList<String>();
     private StackPane mainPane;
@@ -44,6 +47,13 @@ public class ModuleLastCalled {
 
         stage.show();
 
+        modulePlay.setDisableButtonLastCalled(true);
+        stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent event) {
+                modulePlay.setDisableButtonLastCalled(false);
+            }
+        });
     }
 
     public void rerenderLastCalled() {
@@ -77,8 +87,14 @@ public class ModuleLastCalled {
                     }
                 }
 
-                mainPane.getChildren().remove(0);
+                if(mainPane.getChildren().size() >= 1) {
+                    mainPane.getChildren().remove(0);
+                }
                 mainPane.getChildren().add(pane);
+            } else {
+                if(mainPane.getChildren().size() >= 1) {
+                    mainPane.getChildren().remove(0);
+                }
             }
         }
     }
@@ -95,5 +111,15 @@ public class ModuleLastCalled {
         for (int j = 0; j < lastCalled.size(); j++) {
             if (lastCalled.get(j) == i) lastCalled.remove(j);
         }
+    }
+
+    public void clear() {
+        lastCalled.clear();
+
+        rerenderLastCalled();
+    }
+
+    public void setModulePlay(ModulePlay modPlay) {
+        modulePlay = modPlay;
     }
 }
