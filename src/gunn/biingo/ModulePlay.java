@@ -2,13 +2,15 @@ package gunn.biingo;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Tab;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
@@ -17,22 +19,22 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
 import org.json.simple.parser.ParseException;
 
 import java.io.File;
-import java.util.Arrays;
 
 public class ModulePlay {
-    private File projectDirectory;
-    private ModuleDatabase moduleDatabase;
+    private final File projectDirectory;
+    private final ModuleDatabase moduleDatabase;
+    private final ModuleLastCalled moduleLastCalled;
     private VBox callBox;
 
     private boolean[] trackedNumbers = new boolean[76];
 
-    public ModulePlay(File projDir, ModuleDatabase modData) {
+    public ModulePlay(File projDir, ModuleDatabase modData, ModuleLastCalled moduleLast) {
         projectDirectory = projDir;
         moduleDatabase = modData;
+        moduleLastCalled = moduleLast;
     }
 
     public void tabPlayGame(Tab tab) {
@@ -112,6 +114,14 @@ public class ModulePlay {
                 resetConfirmation();
             }
         });
+
+        //Button LastValled
+        buttonLastCalled.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                moduleLastCalled.lastCalledPopup();
+            }
+        });
     }
 
     /**
@@ -181,6 +191,14 @@ public class ModulePlay {
                         trackedNumbers[num] = t1;
                         moduleDatabase.setTracked(trackedNumbers);
                         moduleDatabase.rerenderDatabaseCard();
+
+                        if(t1) {
+                            moduleLastCalled.addLastCalled(finalNumberName);
+                        } else {
+                            moduleLastCalled.removeLastCalled(finalNumberName);
+                        }
+
+                        moduleLastCalled.rerenderLastCalled();
                     }
                 });
 

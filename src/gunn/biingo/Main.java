@@ -1,11 +1,6 @@
 package gunn.biingo;
 
 import javafx.application.Application;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
@@ -13,43 +8,37 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.DragEvent;
-import javafx.scene.input.Dragboard;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.input.TransferMode;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.util.Random;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 
 public class Main extends Application {
-    Stage primaryStage = null;
-    File projectDirectory = null;
+    private Stage primaryStage = null;
+    private File projectDirectory = null;
 
-    ModuleDatabase moduleDatabase;
-    ModuleGenerate moduleGenerate;
-    ModuleCardEditor moduleCardEditor;
-    ModuleBookletEditor moduleBookletEditor;
-    ModulePlay modulePlay;
+    private ModuleDatabase moduleDatabase;
+    private ModuleGenerate moduleGenerate;
+    private  ModuleCardEditor moduleCardEditor;
+    private ModuleBookletEditor moduleBookletEditor;
+    private ModulePlay modulePlay;
+    private ModuleLastCalled moduleLastCalled;
 
     public static void main(String[] args) throws Exception {
         launch(args);
@@ -58,7 +47,7 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        primaryStage.setTitle("BINGO Card Generator");
+        primaryStage.setTitle("BINGO Card Generator V1.1.1");
         this.primaryStage = primaryStage;
 
         windowMainMenu();
@@ -94,7 +83,7 @@ public class Main extends Application {
         copyBox.setPadding(new Insets(5, 5, 5, 5));
         copyBox.setAlignment(Pos.CENTER_RIGHT);
         // Elements
-        Text copy = new Text("V1.1.0 - Copyright Brady Gunn 2020. All rights reserved");
+        Text copy = new Text("V1.1.1 - Copyright Brady Gunn 2020. All rights reserved");
         copy.setTextAlignment(TextAlignment.RIGHT);
         copyBox.getChildren().add(copy);
         // Add to Bottom Box
@@ -173,7 +162,8 @@ public class Main extends Application {
         moduleGenerate = new ModuleGenerate(projectDirectory, moduleDatabase);
         moduleCardEditor = new ModuleCardEditor(projectDirectory, primaryStage);
         moduleBookletEditor = new ModuleBookletEditor(projectDirectory, primaryStage, moduleGenerate);
-        modulePlay = new ModulePlay(projectDirectory, moduleDatabase);
+        moduleLastCalled = new ModuleLastCalled(projectDirectory);
+        modulePlay = new ModulePlay(projectDirectory, moduleDatabase, moduleLastCalled);
     }
 
     public void createProjectDirectory(File file) {
