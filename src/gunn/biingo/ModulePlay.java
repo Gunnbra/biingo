@@ -2,14 +2,13 @@ package gunn.biingo;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Tab;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
@@ -17,6 +16,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import org.json.simple.parser.ParseException;
 
 import java.io.File;
@@ -25,6 +26,7 @@ import java.util.Arrays;
 public class ModulePlay {
     private File projectDirectory;
     private ModuleDatabase moduleDatabase;
+    private VBox callBox;
 
     private boolean[] trackedNumbers = new boolean[76];
 
@@ -38,7 +40,7 @@ public class ModulePlay {
         BorderPane mainLayout = new BorderPane();
 
         // CENTER
-        VBox callBox = new VBox();
+        callBox = new VBox();
         callBox.setAlignment(Pos.CENTER);
         callBox.setSpacing(10);
         callBox.setPadding(new Insets(0, 0, 0, 0));
@@ -100,6 +102,14 @@ public class ModulePlay {
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
+            }
+        });
+
+        //Button Reset
+        buttonReset.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                resetConfirmation();
             }
         });
     }
@@ -190,5 +200,48 @@ public class ModulePlay {
         calledBox.setPadding(new Insets(0, 10, 0, 10));
         calledBox.getChildren().add(scrollPane);
         return calledBox;
+    }
+
+    public void resetConfirmation() {
+        Stage resetStage = new Stage();
+        resetStage.setTitle("Are you Sure?");
+        resetStage.setResizable(false);
+        BorderPane mainPane = new BorderPane();
+
+        Text titleText = new Text("Are you sure you want to reset the board?");
+        mainPane.setCenter(titleText);
+
+        HBox optionBox = new HBox();
+        optionBox.setSpacing(10);
+        optionBox.setAlignment(Pos.CENTER);
+        optionBox.setPadding(new Insets(10, 10, 10, 10));
+        Button buttonConfirm = new Button("Confirm");
+        Button buttonCancel = new Button("Cancel");
+        optionBox.getChildren().add(buttonConfirm);
+        optionBox.getChildren().add(buttonCancel);
+        mainPane.setBottom(optionBox);
+
+        Scene genScene = new Scene(mainPane, 300, 100);
+        resetStage.setScene(genScene);
+        resetStage.show();
+
+        buttonCancel.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                resetStage.close();
+            }
+        });
+
+        buttonConfirm.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                trackedNumbers = new boolean[76];
+                moduleDatabase.setTracked(trackedNumbers);
+                callBox.getChildren().remove(callBox.getChildren().size() -1);
+                callBox.getChildren().add(renderPlayTracker());
+                moduleDatabase.rerenderDatabaseCard();
+                resetStage.close();
+            }
+        });
     }
 }

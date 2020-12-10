@@ -158,7 +158,9 @@ public class ModuleDatabase {
      */
     public void rerenderDatabaseCard() {
         try {
-            rerenderDatabaseCard(cardList.getSelectionModel().getSelectedItem());
+            if(cardList != null) {
+                rerenderDatabaseCard(cardList.getSelectionModel().getSelectedItem());
+            }
         } catch (ParseException e) {
             e.printStackTrace();
         }
