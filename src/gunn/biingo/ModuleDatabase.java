@@ -16,6 +16,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -182,7 +183,16 @@ public class ModuleDatabase {
 
         // Card pane
         StackPane stackPane = new StackPane();
+
         Image card = new Image("file:" + templateDir + "/" + "01.png");
+        if(cardID != null) {
+           String template = cardID.substring(cardID.length() - 2);
+
+           if(new File(templateDir + "/" + template + ".png").exists()){
+               card = new Image("file:" + templateDir + "/" + template + ".png");
+           }
+        }
+
         ImageView cardView = new ImageView(card);
         cardView.setFitHeight(600);
         cardView.setFitWidth(500);
