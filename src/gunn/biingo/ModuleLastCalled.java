@@ -6,8 +6,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -34,11 +34,12 @@ public class ModuleLastCalled {
         stage.setTitle("Last Called");
 
         mainPane = new StackPane();
+        mainPane.setBackground(new Background(new BackgroundFill(Color.MAGENTA, CornerRadii.EMPTY, Insets.EMPTY)));
         mainPane.getChildren().add(new Text(" "));
 
         rerenderLastCalled();
 
-        Scene scene = new Scene(mainPane, 180, 450);
+        Scene scene = new Scene(mainPane, 180, 550);
         stage.setScene(scene);
         stage.setResizable(false);
 
@@ -58,6 +59,7 @@ public class ModuleLastCalled {
             if (lastCalled.size() > 0) {
                 VBox pane = new VBox();
                 pane.setStyle("-fx-background-color: transparent;");
+                pane.setBackground(new Background(new BackgroundFill(Color.MAGENTA, CornerRadii.EMPTY, Insets.EMPTY)));
                 pane.setPadding(new Insets(10, 10, 10, 10));
                 pane.setAlignment(Pos.CENTER);
                 pane.setSpacing(10);
@@ -68,18 +70,27 @@ public class ModuleLastCalled {
 
                     for (int i = 1; i < 5; i++) {
                         if (lastCalled.size() >= i) {
+                            HBox numBox = new HBox();
+                            numBox.setAlignment(Pos.CENTER);
+                            numBox.setPadding(new Insets(0, 10, 0, 10));
+                            numBox.setStyle("-fx-border-style: solid inside; -fx-border-width: 1; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: black; -fx-background-color: white; -fx-background-radius: 5; -fx-background-insets: 5px");
+                            numBox.setPadding(new Insets(5, 5, 5, 5));
+                            numBox.setAlignment(Pos.CENTER);
+
                             file = lastCalled.get(lastCalled.size() - i) + ".png";
                             if (Arrays.asList(fileList).contains(file)) {
                                 Image image = new Image("file:" + iconDir.getAbsolutePath() + "/" + file);
                                 ImageView imageView = new ImageView(image);
-                                imageView.setFitHeight(100);
-                                imageView.setFitWidth(100);
-                                pane.getChildren().add(imageView);
+                                imageView.setFitHeight(90);
+                                imageView.setFitWidth(90);
+                                numBox.getChildren().add(imageView);
                             } else {
                                 Text text = new Text(lastCalled.get(lastCalled.size() - i));
                                 text.setStyle("-fx-font-size: 80px; -fx-font-weight: bold");
-                                pane.getChildren().add(text);
+                                numBox.getChildren().add(text);
                             }
+
+                            pane.getChildren().add(numBox);
                         }
                     }
                 }

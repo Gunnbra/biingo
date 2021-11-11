@@ -295,4 +295,8 @@ public class ModulePlay {
     public void setDisableButtonLastCalled(boolean bool) {
         buttonLastCalled.setDisable(bool);
     }
+
+    public void setDisableButtonScoreboard(boolean bool) {
+        buttonScoreboard.setDisable(bool);
+    }
 }

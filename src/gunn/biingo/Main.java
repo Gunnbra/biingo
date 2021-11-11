@@ -51,7 +51,7 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        primaryStage.setTitle("BINGO Card Generator V1.1.3");
+        primaryStage.setTitle("BINGO Card Generator V1.2.0");
         this.primaryStage = primaryStage;
 
         windowMainMenu();
@@ -87,7 +87,7 @@ public class Main extends Application {
         copyBox.setPadding(new Insets(5, 5, 5, 5));
         copyBox.setAlignment(Pos.CENTER_RIGHT);
         // Elements
-        Text copy = new Text("V1.1.3 - Copyright Brady Gunn 2020. All rights reserved");
+        Text copy = new Text("V1.2.0 - Copyright Brady Gunn 2021. All rights reserved");
         copy.setTextAlignment(TextAlignment.RIGHT);
         copyBox.getChildren().add(copy);
         // Add to Bottom Box
@@ -171,6 +171,7 @@ public class Main extends Application {
         modulePlay = new ModulePlay(projectDirectory, moduleDatabase, moduleLastCalled, moduleScoreboard);
         moduleLastCalled.setModulePlay(modulePlay);
         moduleDatabase.setModulePlay(modulePlay);
+        moduleScoreboard.setModulePlay(modulePlay);
     }
 
     public void createProjectDirectory(File file) {

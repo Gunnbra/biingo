@@ -30,6 +30,7 @@ public class ModuleScoreboard {
     private final File iconDir;
     private final File projectDir;
     private BorderPane mainPane;
+    private ModulePlay modulePlay;
 
     private final LinkedList<Integer> calledNumbers = new LinkedList<Integer>();
 
@@ -50,6 +51,14 @@ public class ModuleScoreboard {
         stage.setScene(scene);
       //  stage.setResizable(false);
         stage.show();
+
+        modulePlay.setDisableButtonScoreboard(true);
+        stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent event) {
+                modulePlay.setDisableButtonScoreboard(false);
+            }
+        });
     }
 
     /**
@@ -78,10 +87,7 @@ public class ModuleScoreboard {
                 HBox numBox = new HBox();
                 numBox.setAlignment(Pos.CENTER);
                 numBox.setPadding(new Insets(0, 10, 0, 10));
-
-                final File fileNum = new File(iconDir.getAbsolutePath() + "/" + "01.png");
-                numBox.setStyle("-fx-border-style: solid inside; -fx-border-width: 1; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: black; " +
-                        "-fx-background-color: white; -fx-background-radius: 5; -fx-background-insets: 5px");
+                numBox.setStyle("-fx-border-style: solid inside; -fx-border-width: 1; -fx-border-insets: 5; -fx-border-radius: 5; -fx-border-color: black; -fx-background-color: white; -fx-background-radius: 5; -fx-background-insets: 5px");
                 numBox.setPadding(new Insets(5, 5, 5, 5));
                 numBox.setAlignment(Pos.CENTER);
 
@@ -104,8 +110,8 @@ public class ModuleScoreboard {
                     }
                     numBox.getChildren().add(imageView);
                 } else {
-                    Text t = new Text(numberName);
-                    t.setStyle("-fx-font-size: 22; -fx-font-weight: bold");
+                    Text t = new Text("  " + numberName + "  ");
+                    t.setStyle("-fx-font-size: 40; -fx-font-weight: bold");
                     numBox.getChildren().add(t);
                 }
 
@@ -145,5 +151,9 @@ public class ModuleScoreboard {
         calledNumbers.clear();
 
         renderPlayTracker();
+    }
+
+    public void setModulePlay(ModulePlay modPlay) {
+        modulePlay = modPlay;
     }
 }
