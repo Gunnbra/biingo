@@ -27,18 +27,21 @@ public class ModulePlay {
     private final File projectDirectory;
     private final ModuleDatabase moduleDatabase;
     private final ModuleLastCalled moduleLastCalled;
+    private final ModuleScoreboard moduleScoreboard;
     private VBox callBox;
 
     private Button buttonReset;
     private Button buttonVerify;
     private Button buttonLastCalled;
+    private Button buttonScoreboard;
 
     private boolean[] trackedNumbers = new boolean[76];
 
-    public ModulePlay(File projDir, ModuleDatabase modData, ModuleLastCalled moduleLast) {
+    public ModulePlay(File projDir, ModuleDatabase modData, ModuleLastCalled moduleLast, ModuleScoreboard moduleScore) {
         projectDirectory = projDir;
         moduleDatabase = modData;
         moduleLastCalled = moduleLast;
+        moduleScoreboard = moduleScore;
     }
 
     public void tabPlayGame(Tab tab) {
@@ -90,9 +93,11 @@ public class ModulePlay {
         buttonReset = new Button("Reset Board");
         buttonVerify = new Button("Verification");
         buttonLastCalled = new Button("Last Called");
+        buttonScoreboard = new Button("Scoreboard");
         optionBox.getChildren().add(buttonReset);
         optionBox.getChildren().add(buttonVerify);
         optionBox.getChildren().add(buttonLastCalled);
+        optionBox.getChildren().add(buttonScoreboard);
         mainLayout.setBottom(optionBox);
 
         tab.setContent(mainLayout);
@@ -124,6 +129,14 @@ public class ModulePlay {
             @Override
             public void handle(ActionEvent event) {
                 moduleLastCalled.lastCalledPopup();
+            }
+        });
+
+        //Button Scoreboard
+        buttonScoreboard.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                moduleScoreboard.scoreBoardPopup();
             }
         });
     }
@@ -164,7 +177,8 @@ public class ModulePlay {
                 Text textNumber = new Text(Integer.toString(j + (i * 15)));
                 numBox.getChildren().add(textNumber);
 
-                String numberName = Integer.toString(j + (i * 15));
+                int rawNumber = j + (i * 15);
+                String numberName = Integer.toString(rawNumber);
                 if (Integer.parseInt(numberName) < 10) {
                     numberName = "0" + numberName;
                 }
@@ -196,13 +210,16 @@ public class ModulePlay {
                         moduleDatabase.setTracked(trackedNumbers);
                         moduleDatabase.rerenderDatabaseCard();
 
-                        if(t1) {
+                        if (t1) {
                             moduleLastCalled.addLastCalled(finalNumberName);
+                            moduleScoreboard.addCalled(rawNumber);
                         } else {
                             moduleLastCalled.removeLastCalled(finalNumberName);
+                            moduleScoreboard.removeCalled(rawNumber);
                         }
 
                         moduleLastCalled.rerenderLastCalled();
+                        moduleScoreboard.renderPlayTracker();
                     }
                 });
 
@@ -259,11 +276,12 @@ public class ModulePlay {
             public void handle(ActionEvent event) {
                 trackedNumbers = new boolean[76];
                 moduleDatabase.setTracked(trackedNumbers);
-                callBox.getChildren().remove(callBox.getChildren().size() -1);
+                callBox.getChildren().remove(callBox.getChildren().size() - 1);
                 callBox.getChildren().add(renderPlayTracker());
                 moduleDatabase.rerenderDatabaseCard();
 
                 moduleLastCalled.clear();
+                moduleScoreboard.clear();
 
                 resetStage.close();
             }

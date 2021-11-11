@@ -13,6 +13,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -25,6 +26,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -39,6 +41,7 @@ public class Main extends Application {
     private ModuleBookletEditor moduleBookletEditor;
     private ModulePlay modulePlay;
     private ModuleLastCalled moduleLastCalled;
+    private ModuleScoreboard moduleScoreboard;
 
     public static void main(String[] args) throws Exception {
         launch(args);
@@ -164,7 +167,8 @@ public class Main extends Application {
         moduleCardEditor = new ModuleCardEditor(projectDirectory, primaryStage);
         moduleBookletEditor = new ModuleBookletEditor(projectDirectory, primaryStage, moduleGenerate);
         moduleLastCalled = new ModuleLastCalled(projectDirectory);
-        modulePlay = new ModulePlay(projectDirectory, moduleDatabase, moduleLastCalled);
+        moduleScoreboard = new ModuleScoreboard(projectDirectory);
+        modulePlay = new ModulePlay(projectDirectory, moduleDatabase, moduleLastCalled, moduleScoreboard);
         moduleLastCalled.setModulePlay(modulePlay);
         moduleDatabase.setModulePlay(modulePlay);
     }

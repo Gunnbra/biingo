@@ -6,13 +6,10 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
 
 import java.io.File;
@@ -87,12 +84,12 @@ public class ModuleLastCalled {
                     }
                 }
 
-                if(mainPane.getChildren().size() >= 1) {
+                if (mainPane.getChildren().size() >= 1) {
                     mainPane.getChildren().remove(0);
                 }
                 mainPane.getChildren().add(pane);
             } else {
-                if(mainPane.getChildren().size() >= 1) {
+                if (mainPane.getChildren().size() >= 1) {
                     mainPane.getChildren().remove(0);
                 }
             }
