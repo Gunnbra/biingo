@@ -7,12 +7,11 @@ import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Tab;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -53,6 +52,44 @@ public class ModulePlay {
         callBox.setAlignment(Pos.CENTER);
         callBox.setSpacing(10);
         callBox.setPadding(new Insets(0, 0, 0, 0));
+
+        // Enter numbers to call/uncall them
+        TextField enterField = new TextField();
+        enterField.setMaxWidth(50);
+        enterField.textProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observable, String oldValue,
+                                String newValue) {
+                if (!newValue.matches("\\d*")) {
+                    enterField.setText(newValue.replaceAll("[^\\d]", ""));
+                }
+
+                if (!newValue.equals("")) {
+                    if ((Integer.parseInt(newValue) < 1) || (Integer.parseInt(newValue) > 75)) {
+                        enterField.setText("");
+                    }
+                }
+            }
+        });
+        enterField.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent ke) {
+                if (ke.getCode().equals(KeyCode.ENTER)) {
+                    if(!enterField.getText().equals("")) {
+                        String numberName = enterField.getText();
+                        if (Integer.parseInt(numberName) < 10) {
+                            numberName = "0" + numberName;
+                        }
+
+                        CheckBox numBox = ((CheckBox)mainLayout.lookupAll("#checkbox_" + numberName).toArray()[0]);
+                        numBox.setSelected(!numBox.isSelected());
+                    }
+                }
+            }
+        });
+
+        callBox.getChildren().add(enterField);
+
         // B I N G O
         HBox bingoBox = new HBox();
         bingoBox.setAlignment(Pos.CENTER);
@@ -79,6 +116,7 @@ public class ModulePlay {
         bingoBox.getChildren().add(textG);
         bingoBox.getChildren().add(textO);
         callBox.getChildren().add(bingoBox);
+
         // Called Numbers
         HBox calledNumbers = renderPlayTracker();
         callBox.getChildren().add(calledNumbers);
@@ -200,6 +238,7 @@ public class ModulePlay {
 
                 // Add checkbox
                 CheckBox checkNum = new CheckBox();
+                checkNum.setId("checkbox_" + numberName);
                 String finalNumberName = numberName;
                 checkNum.selectedProperty().addListener(new ChangeListener<Boolean>() {
                     @Override
