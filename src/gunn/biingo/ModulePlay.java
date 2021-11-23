@@ -82,7 +82,27 @@ public class ModulePlay {
                         }
 
                         CheckBox numBox = ((CheckBox)mainLayout.lookupAll("#checkbox_" + numberName).toArray()[0]);
-                        numBox.setSelected(!numBox.isSelected());
+
+                        if(!numBox.isSelected()) {
+                            numBox.setSelected(true);
+                        }
+
+                        enterField.setText(""); // Clear
+                    }
+                }
+
+                if (ke.getCode().equals(KeyCode.DELETE)) {
+                    if(!enterField.getText().equals("")) {
+                        String numberName = enterField.getText();
+                        if (Integer.parseInt(numberName) < 10) {
+                            numberName = "0" + numberName;
+                        }
+
+                        CheckBox numBox = ((CheckBox)mainLayout.lookupAll("#checkbox_" + numberName).toArray()[0]);
+
+                        if(numBox.isSelected()) {
+                            numBox.setSelected(false);
+                        }
 
                         enterField.setText(""); // Clear
                     }
