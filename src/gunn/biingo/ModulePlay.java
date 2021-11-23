@@ -83,6 +83,8 @@ public class ModulePlay {
 
                         CheckBox numBox = ((CheckBox)mainLayout.lookupAll("#checkbox_" + numberName).toArray()[0]);
                         numBox.setSelected(!numBox.isSelected());
+
+                        enterField.setText(""); // Clear
                     }
                 }
             }
